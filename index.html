@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>RMS Pro Sentinel</title>
+    <meta
+      name="description"
+      content="Offline RMS Pro Sentinel for funds parsing, liquidation estimation, stress testing, and desk calculator workflows."
+    >
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow">Static project page</p>
+          <h1>RMS Pro Sentinel</h1>
+          <p class="hero-text">
+            An offline RMS workspace for daily desk operations. Paste a Funds tab summary, estimate
+            liquidation impact from CSV uploads, run stress scenarios, and keep quick calculations in
+            a browser-only scratchpad.
+          </p>
+          <div class="hero-pills">
+            <span>GitHub Pages ready</span>
+            <span>No backend</span>
+            <span>No API keys</span>
+          </div>
+        </div>
+        <aside class="hero-side">
+          <div class="hero-stat">
+            <span class="hero-stat-label">Hosting</span>
+            <strong class="hero-stat-value">Static HTML, CSS, JS</strong>
+          </div>
+          <div class="hero-stat">
+            <span class="hero-stat-label">Best for</span>
+            <strong class="hero-stat-value">RMS checks and desk math</strong>
+          </div>
+          <div class="hero-stat">
+            <span class="hero-stat-label">Persistence</span>
+            <strong class="hero-stat-value">Browser local storage</strong>
+          </div>
+        </aside>
+      </header>
+
+      <section class="toolbar">
+        <div class="tablist" role="tablist" aria-label="RMS sections">
+          <button class="tab-button active" data-tab-target="funds" role="tab" aria-selected="true">Funds and RMS</button>
+          <button class="tab-button" data-tab-target="liquidation" role="tab" aria-selected="false">Liquidation</button>
+          <button class="tab-button" data-tab-target="stress" role="tab" aria-selected="false">Stress Test</button>
+          <button class="tab-button" data-tab-target="scratchpad" role="tab" aria-selected="false">Scratchpad</button>
+        </div>
+        <p class="toolbar-note">Everything runs in your browser. Nothing is uploaded anywhere.</p>
+      </section>
+
+      <main class="tab-panels">
+        <section class="tab-panel active" data-tab-panel="funds" role="tabpanel">
+          <div class="panel-grid panel-grid-wide">
+            <section class="panel">
+              <div class="section-heading">
+                <h2>Funds Parser</h2>
+                <p>Paste the raw Funds tab summary and extract the RMS numbers with label-driven regex.</p>
+              </div>
+
+              <label class="field-label" for="funds-input">Funds summary</label>
+              <textarea
+                id="funds-input"
+                class="large-textarea"
+                placeholder="Opening balance: 500000.00&#10;Total collateral: 300000.00&#10;SPAN: 225000.00&#10;Exposure: 85000.00&#10;Options premium: 12000.00&#10;Delivery margin: 5000.00"
+              ></textarea>
+
+              <div class="option-row">
+                <label class="checkbox-row">
+                  <input id="ignore-option-premium" type="checkbox">
+                  <span>Ignore option premium</span>
+                </label>
+                <label class="checkbox-row">
+                  <input id="include-delivery-margin" type="checkbox">
+                  <span>Include delivery margin</span>
+                </label>
+              </div>
+
+              <div class="button-row">
+                <button id="parse-funds-button" class="primary-button" type="button">Parse and calculate</button>
+                <button id="reset-funds-button" class="ghost-button" type="button">Reset</button>
+              </div>
+            </section>
+
+            <section class="panel">
+              <div class="section-heading">
+                <h2>RMS Snapshot</h2>
+                <p>Margin availability, required margin, shortfall or buffer, and utilization.</p>
+              </div>
+
+              <div id="funds-metrics" class="metric-grid"></div>
+              <div id="funds-status"></div>
+              <div id="funds-proof" class="proof-box empty-state">Run the parser to generate a breakdown.</div>
+
+              <div class="table-panel">
+                <div class="table-header">
+                  <h3>Extracted fields</h3>
+                  <span class="subtle-text">Matched labels help you audit the parser.</span>
+                </div>
+                <div class="table-shell">
+                  <table id="funds-details-table">
+                    <thead>
+                      <tr>
+                        <th>Field</th>
+                        <th>Value</th>
+                        <th>Matched Label</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td colspan="3" class="empty-cell">No parsed data yet.</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </section>
+          </div>
+        </section>
+
+        <section class="tab-panel" data-tab-panel="liquidation" role="tabpanel">
+          <div class="panel-grid">
+            <section class="panel">
+              <div class="section-heading">
+                <h2>Portfolio Deep Scan</h2>
+                <p>Upload a positions CSV and estimate margin released per lot using the file's margin columns.</p>
+              </div>
+
+              <div class="field-stack">
+                <label class="field-label" for="positions-file">Positions CSV</label>
+                <input id="positions-file" type="file" accept=".csv">
+              </div>
+
+              <div class="field-stack">
+                <label class="field-label" for="target-release">Target margin to release</label>
+                <input id="target-release" class="text-input" type="number" min="0" step="1000" value="0">
+              </div>
+
+              <div id="csv-preview-wrap" class="table-panel hidden">
+                <div class="table-header">
+                  <h3>CSV preview</h3>
+                  <span class="subtle-text">First 8 rows only.</span>
+                </div>
+                <div class="table-shell" id="csv-preview"></div>
+              </div>
+
+              <div id="mapping-wrap" class="mapping-grid hidden"></div>
+
+              <div class="button-row">
+                <button id="run-liquidation-button" class="primary-button" type="button">Run deep scan</button>
+                <button id="clear-liquidation-button" class="ghost-button" type="button">Clear upload</button>
+              </div>
+            </section>
+
+            <section class="panel">
+              <div class="section-heading">
+                <h2>Liquidation Output</h2>
+                <p>Offline estimate only. This is not a live broker-side margin response.</p>
+              </div>
+
+              <div id="liquidation-metrics" class="metric-grid"></div>
+              <div id="liquidation-alert" class="empty-state">Upload a CSV and run the scan.</div>
+              <div id="liquidation-cards"></div>
+
+              <div class="table-panel">
+                <div class="table-header">
+                  <h3>Per-lot efficiency ranking</h3>
+                </div>
+                <div class="table-shell" id="baseline-table"></div>
+              </div>
+
+              <div class="table-panel">
+                <div class="table-header">
+                  <h3>Step-by-step simulation</h3>
+                </div>
+                <div class="table-shell" id="steps-table"></div>
+              </div>
+            </section>
+          </div>
+        </section>
+
+        <section class="tab-panel" data-tab-panel="stress" role="tabpanel">
+          <div class="panel-grid">
+            <section class="panel">
+              <div class="section-heading">
+                <h2>Stress Controls</h2>
+                <p>Model a jump in required margin and a haircut on collateral.</p>
+              </div>
+
+              <div class="slider-group">
+                <label class="slider-label" for="required-shock">Required margin shock: <strong id="required-shock-value">0%</strong></label>
+                <input id="required-shock" type="range" min="0" max="75" step="1" value="0">
+              </div>
+
+              <div class="slider-group">
+                <label class="slider-label" for="collateral-haircut">Collateral haircut: <strong id="collateral-haircut-value">0%</strong></label>
+                <input id="collateral-haircut" type="range" min="0" max="75" step="1" value="0">
+              </div>
+            </section>
+
+            <section class="panel">
+              <div class="section-heading">
+                <h2>Scenario Output</h2>
+                <p>The stress view uses the latest parsed Funds snapshot.</p>
+              </div>
+
+              <div id="stress-metrics" class="metric-grid"></div>
+              <div id="stress-status" class="empty-state">Parse the Funds tab first to enable stress testing.</div>
+            </section>
+          </div>
+        </section>
+
+        <section class="tab-panel" data-tab-panel="scratchpad" role="tabpanel">
+          <div class="panel-grid">
+            <section class="panel">
+              <div class="section-heading">
+                <h2>Desk Scratchpad</h2>
+                <p>Safe formula evaluation for quick arithmetic and a running total.</p>
+              </div>
+
+              <div class="inline-form">
+                <div class="field-stack">
+                  <label class="field-label" for="scratchpad-label">Label</label>
+                  <input id="scratchpad-label" class="text-input" type="text" placeholder="Optional">
+                </div>
+                <div class="field-stack field-grow">
+                  <label class="field-label" for="scratchpad-expression">Formula</label>
+                  <input id="scratchpad-expression" class="text-input" type="text" placeholder="50000 * 1.05 or 12500 + 4500">
+                </div>
+                <div class="field-stack field-compact">
+                  <label class="field-label">&nbsp;</label>
+                  <button id="add-scratchpad-button" class="primary-button" type="button">Add line</button>
+                </div>
+              </div>
+
+              <div class="button-row">
+                <button id="remove-scratchpad-button" class="ghost-button" type="button">Remove last line</button>
+                <button id="clear-scratchpad-button" class="ghost-button" type="button">Clear scratchpad</button>
+                <button id="download-scratchpad-button" class="ghost-button" type="button">Download CSV</button>
+              </div>
+            </section>
+
+            <section class="panel">
+              <div class="section-heading">
+                <h2>Scratchpad History</h2>
+                <p>A compact running log with totals saved in the browser.</p>
+              </div>
+
+              <div id="scratchpad-total" class="summary-total empty-state">No calculations yet.</div>
+              <div class="table-shell" id="scratchpad-table"></div>
+            </section>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>

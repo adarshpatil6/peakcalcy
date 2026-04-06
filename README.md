@@ -1,75 +1,48 @@
 # RMS Pro Sentinel
 
-RMS Pro Sentinel is a Streamlit application for daily RMS work. It combines a regex-based Funds tab parser, an offline portfolio liquidation estimator, a stress-test workspace, and a safe scratchpad calculator.
+RMS Pro Sentinel is now a static GitHub Pages app. It runs entirely in the browser and includes:
 
-## Features
+- Funds tab parsing with regex extraction
+- RMS margin shortfall or buffer analysis
+- Offline liquidation estimation from uploaded CSV margin columns
+- Stress testing for margin shock and collateral haircut
+- Safe scratchpad calculations with local browser history
 
-- Funds tab parser for opening balance, collateral, SPAN, exposure, option premium, delivery margin, payin, and payout
-- Margin shortfall or buffer calculation with utilization percentage
-- Offline portfolio deep scan that estimates lot-by-lot liquidation impact from uploaded CSV margin columns
-- Stress testing for required margin shock and collateral haircut
-- Safe calculator with running table history and CSV export
+## Project files
 
-## Local setup
+- `index.html`: page structure
+- `styles.css`: UI theme and layout
+- `app.js`: parser, liquidation logic, stress logic, and scratchpad logic
 
-1. Create and activate a virtual environment.
-2. Install dependencies:
+## Local preview
 
-```powershell
-pip install -r requirements.txt
+You can open `index.html` directly in a browser, or serve the folder with any static server.
+
+## GitHub Pages deployment
+
+1. Create a GitHub repository for this project.
+2. Push this folder to the repository.
+3. In GitHub, open `Settings` -> `Pages`.
+4. Under `Build and deployment`, choose `Deploy from a branch`.
+5. Select the `main` branch and `/ (root)` folder.
+6. Save the settings.
+7. Wait for GitHub Pages to publish the site.
+
+The URL will look like:
+
+```text
+https://<your-github-username>.github.io/<repository-name>/
 ```
 
-3. Run the app:
+## Important hosting note
 
-```powershell
-streamlit run app.py
-```
+GitHub Pages is for static sites. This version is designed specifically for that model, so it does not require Python, Streamlit, or broker APIs.
 
-## Secure GitHub upload
-
-1. Initialize git if needed:
-
-```powershell
-git init -b main
-git add .
-git commit -m "Build RMS Pro Sentinel Streamlit app"
-```
-
-2. Create a new private GitHub repository without adding a README, license, or `.gitignore`.
-3. Add the remote and push:
-
-```powershell
-git remote add origin https://github.com/<your-user>/<your-private-repo>.git
-git push -u origin main
-```
-
-## Streamlit Community Cloud deployment
-
-1. Create a Streamlit Community Cloud account and connect your GitHub account.
-2. In Streamlit Community Cloud settings, grant access to private repositories.
-3. Click `Create app`.
-4. Select the private GitHub repository, the `main` branch, and `app.py` as the entrypoint.
-5. Open `Advanced settings`.
-6. Choose Python `3.12`.
-7. Deploy the app.
-
-## Access control note
-
-For Streamlit Community Cloud, a private app is not "anyone with the link." The secure mode is `Only specific people can view this app`, which requires invited viewers or repository developers. If you make the app public, anyone with the URL can open it and the app becomes public.
-
-Streamlit's current Community Cloud docs also note that you are only allowed one private app at a time on Community Cloud.
-
-Recommended secure setup:
-
-1. Keep the GitHub repository private.
-2. Deploy the app.
-3. Open the app `Share` settings.
-4. Set `Who can view this app` to `Only specific people can view this app`.
-5. Invite viewer email addresses from the share dialog.
+On GitHub Free, GitHub Pages is available for public repositories. Private-repository Pages requires an eligible paid GitHub plan.
 
 ## CSV expectations for liquidation scan
 
-The uploader works best when the CSV includes columns similar to:
+The liquidation estimator works best when the CSV includes columns similar to:
 
 - `tradingsymbol` or `instrument`
 - `quantity` or `qty`
@@ -78,4 +51,12 @@ The uploader works best when the CSV includes columns similar to:
 - `lot_size`
 - `margin` or `total margin`
 
-If you do not have a total margin column, map `SPAN` and `Exposure` columns instead. The liquidation output is an offline estimate based on uploaded data, not a live broker-side margin calculation.
+If you do not have a total margin column, map `SPAN` and `Exposure` columns instead.
+
+## Data handling
+
+Everything runs in the browser:
+
+- Funds text stays local to the browser
+- Scratchpad history is stored in local browser storage
+- Uploaded CSV data is processed locally and not sent anywhere
