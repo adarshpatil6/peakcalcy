@@ -320,8 +320,9 @@
       }
 
       .metric-card.status-shortfall {
-        border-color: rgba(255, 75, 75, 0.28);
-        background: linear-gradient(180deg, var(--danger-soft) 0%, var(--panel) 100%);
+        border-color: rgba(255, 75, 75, 0.55);
+        background: linear-gradient(180deg, rgba(255, 75, 75, 0.26) 0%, rgba(255, 75, 75, 0.12) 42%, var(--panel) 100%);
+        box-shadow: inset 0 0 0 1px rgba(255, 75, 75, 0.14);
       }
 
       .metric-label {
@@ -339,6 +340,14 @@
         line-height: 1.15;
         font-variant-numeric: tabular-nums;
         overflow-wrap: anywhere;
+      }
+
+      .metric-card.status-shortfall .metric-value {
+        color: var(--accent);
+      }
+
+      .metric-card.status-shortfall .metric-subtext {
+        color: rgba(255, 75, 75, 0.92);
       }
 
       .metric-subtext { margin-top: 8px; line-height: 1.5; }
@@ -916,6 +925,15 @@
           })}`;
         }
 
+        function formatSignedMoney(value) {
+          const numeric = safeNumber(value);
+          const absolute = Math.abs(numeric).toLocaleString("en-IN", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          });
+          return `${numeric < 0 ? "-" : ""}Rs. ${absolute}`;
+        }
+
         function formatPercent(value) {
           return `${safeNumber(value).toFixed(2)}%`;
         }
@@ -1083,7 +1101,9 @@
         function renderMetrics(result) {
           const available = result.finalResult >= 0;
           elements.statusCard.className = `metric-card ${available ? "status-available" : "status-shortfall"}`;
-          elements.statusValue.textContent = `${available ? "Available" : "Shortfall"} ${formatMoney(available ? result.surplus : result.shortfall)}`;
+          elements.statusValue.textContent = available
+            ? `Available ${formatMoney(result.surplus)}`
+            : `Shortfall ${formatSignedMoney(-result.shortfall)}`;
           elements.statusSubtext.textContent = available
             ? "Surplus margin available after peak requirement."
             : "Additional funds required to cover peak requirement.";
