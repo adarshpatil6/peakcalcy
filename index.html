@@ -846,7 +846,8 @@
           { key: "NSEBANK", symbol: "^NSEBANK" },
           { key: "BSESN", symbol: "^BSESN" },
         ];
-        const MARKET_REFRESH_THROTTLE_MS = 5000;
+        const MARKET_REFRESH_THROTTLE_MS = 300000;
+        const MARKET_AUTO_REFRESH_MS = 300000;
         const STORAGE_KEY = "calculator-dashboard-state-v1";
 
         let scratchpadEntries = [];
@@ -1746,7 +1747,7 @@
         }
         tryAutoPaste();
         refreshMarkets();
-        window.setInterval(refreshMarkets, 45000);
+        window.setInterval(refreshMarkets, MARKET_AUTO_REFRESH_MS);
       })();
     </script>
   </body>
