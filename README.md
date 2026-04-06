@@ -3,16 +3,15 @@
 PeakCalcy is now a static GitHub Pages app. It runs entirely in the browser and includes:
 
 - Funds tab parsing with regex extraction
-- Margin shortfall or buffer analysis
-- Offline liquidation estimation from uploaded CSV margin columns
-- Stress testing for margin shock and collateral haircut
-- Safe scratchpad calculations with local browser history
+- Funds shortfall or buffer analysis
+- An Excel-style scratchpad for quick formulas and totals
+- Safe browser-side calculations with local history
 
 ## Project files
 
 - `index.html`: page structure
 - `styles.css`: UI theme and layout
-- `app.js`: parser, liquidation logic, stress logic, and scratchpad logic
+- `app.js`: parser and scratchpad logic
 
 ## Local preview
 
@@ -42,23 +41,9 @@ GitHub Pages is for static sites. This version is designed specifically for that
 
 On GitHub Free, GitHub Pages is available for public repositories. Private-repository Pages requires an eligible paid GitHub plan.
 
-## CSV expectations for liquidation scan
-
-The liquidation estimator works best when the CSV includes columns similar to:
-
-- `tradingsymbol` or `instrument`
-- `quantity` or `qty`
-- `product`
-- `exchange`
-- `lot_size`
-- `margin` or `total margin`
-
-If you do not have a total margin column, map `SPAN` and `Exposure` columns instead.
-
 ## Data handling
 
 Everything runs in the browser:
 
 - Funds text stays local to the browser
 - Scratchpad history is stored in local browser storage
-- Uploaded CSV data is processed locally and not sent anywhere

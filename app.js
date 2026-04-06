@@ -1,4 +1,4 @@
-const STORAGE_KEY = "peakcalcy-static-v1";
+const STORAGE_KEY = "peakcalcy-sheet-v1";
 
 const FUND_LABELS = {
   opening_balance: ["Opening balance", "Opening Balance"],
@@ -22,26 +22,9 @@ const FIELD_TITLES = {
   payout: "Payout",
 };
 
-const COLUMN_HINTS = {
-  symbol: ["tradingsymbol", "instrument", "symbol", "trading symbol", "instrument name"],
-  quantity: ["net qty", "netqty", "quantity", "qty", "net quantity"],
-  product: ["product", "product type", "product_code"],
-  exchange: ["exchange", "exchange segment", "segment"],
-  lot_size: ["lot size", "lot_size", "lotsize"],
-  total_margin: ["total margin", "margin", "margin used", "required margin", "margin blocked"],
-  span_margin: ["span", "span margin"],
-  exposure_margin: ["exposure", "exposure margin"],
-};
-
-const SUPPORTED_PRODUCTS = new Set(["NRML", "MIS", "MTF", "CO", "BO"]);
-const IGNORED_PRODUCTS = new Set(["CNC"]);
-
 const state = {
   activeTab: "funds",
   fundsResult: null,
-  csvData: null,
-  mapping: {},
-  liquidationResult: null,
   scratchpadRows: [],
 };
 
@@ -57,32 +40,11 @@ const elements = {
   fundsStatus: document.getElementById("funds-status"),
   fundsProof: document.getElementById("funds-proof"),
   fundsDetailsTable: document.getElementById("funds-details-table").querySelector("tbody"),
-  positionsFile: document.getElementById("positions-file"),
-  targetRelease: document.getElementById("target-release"),
-  csvPreviewWrap: document.getElementById("csv-preview-wrap"),
-  csvPreview: document.getElementById("csv-preview"),
-  mappingWrap: document.getElementById("mapping-wrap"),
-  runLiquidationButton: document.getElementById("run-liquidation-button"),
-  clearLiquidationButton: document.getElementById("clear-liquidation-button"),
-  liquidationMetrics: document.getElementById("liquidation-metrics"),
-  liquidationAlert: document.getElementById("liquidation-alert"),
-  liquidationCards: document.getElementById("liquidation-cards"),
-  baselineTable: document.getElementById("baseline-table"),
-  stepsTable: document.getElementById("steps-table"),
-  requiredShock: document.getElementById("required-shock"),
-  requiredShockValue: document.getElementById("required-shock-value"),
-  collateralHaircut: document.getElementById("collateral-haircut"),
-  collateralHaircutValue: document.getElementById("collateral-haircut-value"),
-  stressMetrics: document.getElementById("stress-metrics"),
-  stressStatus: document.getElementById("stress-status"),
-  scratchpadLabel: document.getElementById("scratchpad-label"),
-  scratchpadExpression: document.getElementById("scratchpad-expression"),
-  addScratchpadButton: document.getElementById("add-scratchpad-button"),
-  removeScratchpadButton: document.getElementById("remove-scratchpad-button"),
+  addScratchpadRowButton: document.getElementById("add-scratchpad-row-button"),
   clearScratchpadButton: document.getElementById("clear-scratchpad-button"),
   downloadScratchpadButton: document.getElementById("download-scratchpad-button"),
   scratchpadTotal: document.getElementById("scratchpad-total"),
-  scratchpadTable: document.getElementById("scratchpad-table"),
+  scratchpadSheetBody: document.getElementById("scratchpad-sheet-body"),
 };
 
 
@@ -101,21 +63,20 @@ function escapeRegex(value) {
 }
 
 
+function safeNumber(value) {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : 0;
+}
+
+
 function formatMoney(value) {
-  const numeric = Number(value || 0);
+  const numeric = safeNumber(value);
   return `Rs. ${numeric.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 
 function formatPercent(value) {
-  const numeric = Number(value || 0);
-  return `${numeric.toFixed(2)}%`;
-}
-
-
-function safeNumber(value) {
-  const numeric = Number(value);
-  return Number.isFinite(numeric) ? numeric : 0;
+  return `${safeNumber(value).toFixed(2)}%`;
 }
 
 
@@ -124,11 +85,17 @@ function normaliseAmount(rawValue) {
 }
 
 
-function readNumeric(row, key) {
-  if (!key) {
-    return 0;
-  }
-  return normaliseAmount(row[key] ?? 0);
+function createScratchpadRow(label = "", formula = "") {
+  return {
+    id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    label,
+    formula,
+  };
+}
+
+
+function createScratchpadRows(count = 6) {
+  return Array.from({ length: count }, () => createScratchpadRow());
 }
 
 
@@ -140,8 +107,6 @@ function storagePayload() {
     includeDeliveryMargin: elements.includeDeliveryMargin.checked,
     fundsResult: state.fundsResult,
     scratchpadRows: state.scratchpadRows,
-    requiredShock: elements.requiredShock.value,
-    collateralHaircut: elements.collateralHaircut.value,
   };
 }
 
@@ -155,19 +120,22 @@ function loadState() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) {
+      state.scratchpadRows = createScratchpadRows();
       return;
     }
+
     const parsed = JSON.parse(raw);
     elements.fundsInput.value = parsed.fundsInput || "";
     elements.ignoreOptionPremium.checked = Boolean(parsed.ignoreOptionPremium);
     elements.includeDeliveryMargin.checked = Boolean(parsed.includeDeliveryMargin);
-    elements.requiredShock.value = parsed.requiredShock || "0";
-    elements.collateralHaircut.value = parsed.collateralHaircut || "0";
     state.fundsResult = parsed.fundsResult || null;
-    state.scratchpadRows = Array.isArray(parsed.scratchpadRows) ? parsed.scratchpadRows : [];
     state.activeTab = parsed.activeTab || "funds";
+    state.scratchpadRows = Array.isArray(parsed.scratchpadRows) && parsed.scratchpadRows.length
+      ? parsed.scratchpadRows
+      : createScratchpadRows();
   } catch (error) {
     console.warn("Could not restore saved state.", error);
+    state.scratchpadRows = createScratchpadRows();
   }
 }
 
@@ -177,6 +145,7 @@ function renderMetricCards(container, metrics) {
     container.innerHTML = "";
     return;
   }
+
   container.innerHTML = metrics
     .map(
       (metric) => `
@@ -198,37 +167,6 @@ function renderStatusBox(container, kind, title, value, copyText) {
       <div class="status-value">${escapeHtml(value)}</div>
       <div class="status-copy">${escapeHtml(copyText)}</div>
     </div>
-  `;
-}
-
-
-function renderTable(container, columns, rows, emptyMessage) {
-  if (!rows.length) {
-    container.innerHTML = `
-      <table>
-        <tbody>
-          <tr><td class="empty-cell">${escapeHtml(emptyMessage)}</td></tr>
-        </tbody>
-      </table>
-    `;
-    return;
-  }
-
-  const headerHtml = columns.map((column) => `<th>${escapeHtml(column.label)}</th>`).join("");
-  const rowHtml = rows
-    .map((row) => {
-      const cells = columns
-        .map((column) => `<td>${column.render ? column.render(row[column.key], row) : escapeHtml(row[column.key] ?? "")}</td>`)
-        .join("");
-      return `<tr>${cells}</tr>`;
-    })
-    .join("");
-
-  container.innerHTML = `
-    <table>
-      <thead><tr>${headerHtml}</tr></thead>
-      <tbody>${rowHtml}</tbody>
-    </table>
   `;
 }
 
@@ -276,7 +214,6 @@ function parseFundsSummary(text, ignoreOptionPremium, includeDeliveryMargin) {
 
   return {
     inputs,
-    sources,
     details,
     cashAfterTransfers,
     totalAvailable,
@@ -298,7 +235,7 @@ function renderFundsOutput() {
     elements.fundsProof.textContent = "Run the parser to generate a breakdown.";
     elements.fundsProof.classList.add("empty-state");
     elements.fundsDetailsTable.innerHTML = `<tr><td colspan="3" class="empty-cell">No parsed data yet.</td></tr>`;
-    renderStressOutput();
+    saveState();
     return;
   }
 
@@ -307,11 +244,11 @@ function renderFundsOutput() {
 
   renderMetricCards(elements.fundsMetrics, [
     { label: "Available", value: formatMoney(result.totalAvailable), delta: "Cash plus collateral" },
-    { label: "Required", value: formatMoney(result.totalRequired), delta: "SPAN plus exposure and optional burdens" },
+    { label: "Required", value: formatMoney(result.totalRequired), delta: "SPAN plus exposure and optional burden" },
     {
       label: result.shortfall > 0 ? "Shortfall" : "Buffer",
       value: formatMoney(result.shortfall > 0 ? result.shortfall : result.freeBuffer),
-      delta: "Net available minus required margin",
+      delta: "Net available minus required",
     },
     { label: "Utilization", value: formatPercent(result.utilizationPct), delta: `${freePct.toFixed(2)}% free headroom` },
   ]);
@@ -319,18 +256,18 @@ function renderFundsOutput() {
   if (result.shortfall > 0) {
     renderStatusBox(
       elements.fundsStatus,
-      "stress",
-      "Margin Stress",
+      "shortfall",
+      "Shortfall",
       formatMoney(result.shortfall),
-      "The account is under required margin. Use the liquidation tab to estimate which positions may release the most margin first."
+      "Required usage is above the available amount in this snapshot."
     );
   } else {
     renderStatusBox(
       elements.fundsStatus,
       "safe",
-      "Margin Buffer",
+      "Buffer",
       formatMoney(result.freeBuffer),
-      "The account has a positive margin cushion based on the pasted Funds tab snapshot."
+      "Available funds are above the required amount in this snapshot."
     );
   }
 
@@ -347,7 +284,7 @@ function renderFundsOutput() {
     `TOTAL REQUIRED          : ${formatMoney(result.totalRequired)}`,
     "",
     `NET BUFFER              : ${formatMoney(result.netBuffer)}`,
-    `MARGIN UTILIZATION      : ${formatPercent(result.utilizationPct)}`,
+    `UTILIZATION             : ${formatPercent(result.utilizationPct)}`,
   ].join("\n");
 
   elements.fundsDetailsTable.innerHTML = result.details
@@ -361,460 +298,6 @@ function renderFundsOutput() {
       `
     )
     .join("");
-
-  if (Number(elements.targetRelease.value) === 0 && result.shortfall > 0) {
-    elements.targetRelease.value = String(Math.round(result.shortfall));
-  }
-
-  renderStressOutput();
-}
-
-
-function parseCSV(text) {
-  const rows = [];
-  let row = [];
-  let field = "";
-  let inQuotes = false;
-
-  for (let index = 0; index < text.length; index += 1) {
-    const char = text[index];
-    const next = text[index + 1];
-
-    if (inQuotes) {
-      if (char === '"' && next === '"') {
-        field += '"';
-        index += 1;
-      } else if (char === '"') {
-        inQuotes = false;
-      } else {
-        field += char;
-      }
-      continue;
-    }
-
-    if (char === '"') {
-      inQuotes = true;
-    } else if (char === ",") {
-      row.push(field);
-      field = "";
-    } else if (char === "\n") {
-      row.push(field);
-      if (row.some((cell) => String(cell).trim() !== "")) {
-        rows.push(row);
-      }
-      row = [];
-      field = "";
-    } else if (char !== "\r") {
-      field += char;
-    }
-  }
-
-  row.push(field);
-  if (row.some((cell) => String(cell).trim() !== "")) {
-    rows.push(row);
-  }
-
-  if (!rows.length) {
-    return { headers: [], rows: [] };
-  }
-
-  const headers = rows[0].map((header) => String(header).trim().replaceAll('"', ""));
-  const dataRows = rows.slice(1).map((cells) => {
-    const item = {};
-    headers.forEach((header, index) => {
-      item[header] = cells[index] ?? "";
-    });
-    return item;
-  });
-
-  return { headers, rows: dataRows };
-}
-
-
-function guessColumn(headers, hints) {
-  const normalised = Object.fromEntries(headers.map((header) => [header, header.toLowerCase().replace(/[^a-z0-9]+/g, "")]));
-  for (const hint of hints) {
-    const hintKey = hint.toLowerCase().replace(/[^a-z0-9]+/g, "");
-    for (const header of headers) {
-      const headerKey = normalised[header];
-      if (headerKey === hintKey || headerKey.includes(hintKey)) {
-        return header;
-      }
-    }
-  }
-  return "";
-}
-
-
-function renderCsvPreview() {
-  if (!state.csvData || !state.csvData.rows.length) {
-    elements.csvPreviewWrap.classList.add("hidden");
-    elements.csvPreview.innerHTML = "";
-    return;
-  }
-
-  const columns = state.csvData.headers.slice(0, 8).map((header) => ({ key: header, label: header }));
-  const rows = state.csvData.rows.slice(0, 8);
-  elements.csvPreviewWrap.classList.remove("hidden");
-  renderTable(elements.csvPreview, columns, rows, "No preview rows available.");
-}
-
-
-function buildMappingCard(label, key, headers, guessedValue, allowEmpty = false) {
-  const options = allowEmpty ? ['<option value="">Not available</option>'] : [];
-  options.push(
-    ...headers.map((header) => {
-      const selected = guessedValue === header ? " selected" : "";
-      return `<option value="${escapeHtml(header)}"${selected}>${escapeHtml(header)}</option>`;
-    })
-  );
-
-  return `
-    <div class="mapping-card">
-      <label for="mapping-${escapeHtml(key)}">${escapeHtml(label)}</label>
-      <select id="mapping-${escapeHtml(key)}" data-mapping-key="${escapeHtml(key)}">
-        ${options.join("")}
-      </select>
-    </div>
-  `;
-}
-
-
-function renderMappingControls() {
-  if (!state.csvData || !state.csvData.headers.length) {
-    elements.mappingWrap.classList.add("hidden");
-    elements.mappingWrap.innerHTML = "";
-    return;
-  }
-
-  const headers = state.csvData.headers;
-  const guessed = {
-    symbol: guessColumn(headers, COLUMN_HINTS.symbol),
-    quantity: guessColumn(headers, COLUMN_HINTS.quantity),
-    product: guessColumn(headers, COLUMN_HINTS.product),
-    exchange: guessColumn(headers, COLUMN_HINTS.exchange),
-    lot_size: guessColumn(headers, COLUMN_HINTS.lot_size),
-    total_margin: guessColumn(headers, COLUMN_HINTS.total_margin),
-    span_margin: guessColumn(headers, COLUMN_HINTS.span_margin),
-    exposure_margin: guessColumn(headers, COLUMN_HINTS.exposure_margin),
-  };
-
-  state.mapping = { ...guessed, ...state.mapping };
-  elements.mappingWrap.classList.remove("hidden");
-  elements.mappingWrap.innerHTML = [
-    buildMappingCard("Symbol", "symbol", headers, state.mapping.symbol, false),
-    buildMappingCard("Quantity", "quantity", headers, state.mapping.quantity, false),
-    buildMappingCard("Product", "product", headers, state.mapping.product, true),
-    buildMappingCard("Exchange", "exchange", headers, state.mapping.exchange, true),
-    buildMappingCard("Lot size", "lot_size", headers, state.mapping.lot_size, true),
-    buildMappingCard("Total margin", "total_margin", headers, state.mapping.total_margin, true),
-    buildMappingCard("SPAN", "span_margin", headers, state.mapping.span_margin, true),
-    buildMappingCard("Exposure", "exposure_margin", headers, state.mapping.exposure_margin, true),
-  ].join("");
-
-  elements.mappingWrap.querySelectorAll("select[data-mapping-key]").forEach((select) => {
-    select.addEventListener("change", () => {
-      state.mapping[select.dataset.mappingKey] = select.value;
-    });
-  });
-}
-
-
-function preparePositions() {
-  const mapping = state.mapping;
-  const rows = state.csvData?.rows || [];
-  const positions = [];
-  const skipped = [];
-
-  for (const row of rows) {
-    const symbol = String(row[mapping.symbol] ?? "").trim().toUpperCase();
-    const quantity = Math.trunc(readNumeric(row, mapping.quantity));
-    if (!symbol || quantity === 0) {
-      continue;
-    }
-
-    let product = mapping.product ? String(row[mapping.product] ?? "NRML").trim().toUpperCase() : "NRML";
-    if (!product) {
-      product = "NRML";
-    }
-    if (IGNORED_PRODUCTS.has(product)) {
-      skipped.push({ Symbol: symbol, Reason: `Skipped ${product} position` });
-      continue;
-    }
-    if (!SUPPORTED_PRODUCTS.has(product)) {
-      product = "NRML";
-    }
-
-    const exchange = mapping.exchange ? String(row[mapping.exchange] ?? "-").trim().toUpperCase() || "-" : "-";
-    const lotSize = Math.max(Math.trunc(readNumeric(row, mapping.lot_size) || 1), 1);
-    let totalMargin = Math.abs(readNumeric(row, mapping.total_margin));
-    if (!totalMargin) {
-      totalMargin = Math.abs(readNumeric(row, mapping.span_margin)) + Math.abs(readNumeric(row, mapping.exposure_margin));
-    }
-
-    positions.push({
-      tradingsymbol: symbol,
-      exchange,
-      product,
-      signed_quantity: quantity,
-      quantity: Math.abs(quantity),
-      lot_size: lotSize,
-      transaction_type: quantity > 0 ? "BUY" : "SELL",
-      estimated_margin_total: totalMargin,
-    });
-  }
-
-  return { positions, skipped };
-}
-
-
-function impactLabel(release, targetRelease) {
-  if (release >= Math.max(100000, targetRelease * 0.3)) {
-    return "High Impact";
-  }
-  if (release >= Math.max(30000, targetRelease * 0.12)) {
-    return "Medium Impact";
-  }
-  return "Low Impact";
-}
-
-
-function impactClass(label) {
-  if (label === "High Impact") {
-    return "badge badge-high";
-  }
-  if (label === "Medium Impact") {
-    return "badge badge-medium";
-  }
-  return "badge badge-low";
-}
-
-
-function runLiquidationScan(positions, targetRelease) {
-  let baseMargin = 0;
-  const baselineRows = [];
-  const stepPool = [];
-
-  positions.forEach((position) => {
-    const lotsHeld = Math.max(Math.ceil(position.quantity / position.lot_size), 1);
-    const releasePerLot = lotsHeld ? position.estimated_margin_total / lotsHeld : 0;
-    baseMargin += position.estimated_margin_total;
-
-    baselineRows.push({
-      Instrument: position.tradingsymbol,
-      Exchange: position.exchange,
-      Product: position.product,
-      Direction: position.transaction_type,
-      "Lot Size": position.lot_size,
-      "Current Qty": position.signed_quantity,
-      "Margin Released Per Lot": releasePerLot,
-      "Estimated Position Margin": position.estimated_margin_total,
-      Impact: impactLabel(releasePerLot, targetRelease),
-    });
-
-    for (let lotIndex = 0; lotIndex < lotsHeld; lotIndex += 1) {
-      const qtyClosed = lotIndex < lotsHeld - 1
-        ? position.lot_size
-        : Math.max(position.quantity - position.lot_size * (lotsHeld - 1), 1);
-      stepPool.push({
-        Instrument: position.tradingsymbol,
-        Exchange: position.exchange,
-        Direction: position.transaction_type,
-        "Qty Closed": qtyClosed,
-        "Margin Released": releasePerLot,
-        Impact: impactLabel(releasePerLot, targetRelease),
-      });
-    }
-  });
-
-  const rankedSteps = [...stepPool].sort((left, right) => right["Margin Released"] - left["Margin Released"]);
-  let achievedRelease = 0;
-  const steps = [];
-
-  rankedSteps.forEach((step, index) => {
-    if (targetRelease > 0 && achievedRelease >= targetRelease) {
-      return;
-    }
-    achievedRelease += step["Margin Released"];
-    steps.push({
-      Step: index + 1,
-      ...step,
-      "Cumulative Release": achievedRelease,
-    });
-  });
-
-  const summaryMap = new Map();
-  steps.forEach((step) => {
-    const key = `${step.Instrument}__${step.Exchange}__${step.Direction}`;
-    if (!summaryMap.has(key)) {
-      summaryMap.set(key, {
-        Instrument: step.Instrument,
-        Exchange: step.Exchange,
-        Direction: step.Direction,
-        Lots_To_Close: 0,
-        Quantity_To_Close: 0,
-        Estimated_Release: 0,
-        Average_Release_Per_Lot: 0,
-      });
-    }
-    const item = summaryMap.get(key);
-    item.Lots_To_Close += 1;
-    item.Quantity_To_Close += step["Qty Closed"];
-    item.Estimated_Release += step["Margin Released"];
-  });
-
-  const summaryRows = [...summaryMap.values()]
-    .map((item) => ({
-      ...item,
-      Average_Release_Per_Lot: item.Lots_To_Close ? item.Estimated_Release / item.Lots_To_Close : 0,
-      Impact: impactLabel(item.Lots_To_Close ? item.Estimated_Release / item.Lots_To_Close : 0, targetRelease),
-    }))
-    .sort((left, right) => right.Estimated_Release - left.Estimated_Release);
-
-  baselineRows.sort((left, right) => right["Margin Released Per Lot"] - left["Margin Released Per Lot"]);
-
-  return {
-    baseMargin,
-    achievedRelease,
-    remainingShortfall: Math.max(targetRelease - achievedRelease, 0),
-    baselineRows,
-    steps,
-    summaryRows,
-  };
-}
-
-
-function renderLiquidationOutput() {
-  if (!state.liquidationResult) {
-    elements.liquidationMetrics.innerHTML = "";
-    elements.liquidationCards.innerHTML = "";
-    elements.liquidationAlert.className = "empty-state";
-    elements.liquidationAlert.textContent = "Upload a CSV and run the scan.";
-    renderTable(elements.baselineTable, [], [], "No ranking yet.");
-    renderTable(elements.stepsTable, [], [], "No simulation steps yet.");
-    return;
-  }
-
-  const result = state.liquidationResult;
-  renderMetricCards(elements.liquidationMetrics, [
-    { label: "Estimated Margin", value: formatMoney(result.baseMargin), delta: "Sum of mapped position margins" },
-    { label: "Release Achieved", value: formatMoney(result.achievedRelease), delta: "From the generated liquidation path" },
-    { label: "Target Release", value: formatMoney(result.targetRelease), delta: "Requested release amount" },
-    { label: "Gap Left", value: formatMoney(result.remainingShortfall), delta: "Uncovered release after the scan" },
-  ]);
-
-  elements.liquidationAlert.className = "status-box stress";
-  elements.liquidationAlert.innerHTML = `
-    <div class="status-title">Offline estimate</div>
-    <div class="status-copy">
-      Liquidation output is a heuristic estimate based on uploaded margin data. It is not a live broker-side margin calculation.
-    </div>
-  `;
-
-  if (!result.summaryRows.length) {
-    elements.liquidationCards.innerHTML = `<div class="empty-state">No positive liquidation path was found for the current input.</div>`;
-  } else {
-    elements.liquidationCards.innerHTML = result.summaryRows
-      .map(
-        (row) => `
-          <article class="liquidation-card">
-            <div class="liquidation-topline">
-              <span class="${impactClass(row.Impact)}">${escapeHtml(row.Impact)}</span>
-              <strong class="liquidation-symbol">${escapeHtml(row.Instrument)}</strong>
-            </div>
-            <div class="liquidation-meta">
-              Exchange: ${escapeHtml(row.Exchange)} | Direction: ${escapeHtml(row.Direction)} | Lots to close: ${escapeHtml(row.Lots_To_Close)}
-            </div>
-            <div class="liquidation-meta">
-              Quantity to close: ${escapeHtml(row.Quantity_To_Close)} | Estimated release: ${escapeHtml(formatMoney(row.Estimated_Release))}
-            </div>
-            <div class="liquidation-meta">
-              Average release per lot: ${escapeHtml(formatMoney(row.Average_Release_Per_Lot))}
-            </div>
-          </article>
-        `
-      )
-      .join("");
-  }
-
-  renderTable(
-    elements.baselineTable,
-    [
-      { key: "Instrument", label: "Instrument" },
-      { key: "Exchange", label: "Exchange" },
-      { key: "Direction", label: "Direction" },
-      { key: "Lot Size", label: "Lot Size" },
-      { key: "Current Qty", label: "Current Qty" },
-      { key: "Margin Released Per Lot", label: "Margin Released Per Lot", render: (value) => escapeHtml(formatMoney(value)) },
-      { key: "Estimated Position Margin", label: "Estimated Position Margin", render: (value) => escapeHtml(formatMoney(value)) },
-      { key: "Impact", label: "Impact" },
-    ],
-    result.baselineRows,
-    "No ranking yet."
-  );
-
-  renderTable(
-    elements.stepsTable,
-    [
-      { key: "Step", label: "Step" },
-      { key: "Instrument", label: "Instrument" },
-      { key: "Exchange", label: "Exchange" },
-      { key: "Direction", label: "Direction" },
-      { key: "Qty Closed", label: "Qty Closed" },
-      { key: "Margin Released", label: "Margin Released", render: (value) => escapeHtml(formatMoney(value)) },
-      { key: "Cumulative Release", label: "Cumulative Release", render: (value) => escapeHtml(formatMoney(value)) },
-    ],
-    result.steps,
-    "No simulation steps yet."
-  );
-}
-
-
-function renderStressOutput() {
-  elements.requiredShockValue.textContent = `${elements.requiredShock.value}%`;
-  elements.collateralHaircutValue.textContent = `${elements.collateralHaircut.value}%`;
-
-  if (!state.fundsResult) {
-    elements.stressMetrics.innerHTML = "";
-    elements.stressStatus.className = "empty-state";
-    elements.stressStatus.textContent = "Parse the Funds tab first to enable stress testing.";
-    saveState();
-    return;
-  }
-
-  const result = state.fundsResult;
-  const requiredShock = safeNumber(elements.requiredShock.value);
-  const collateralHaircut = safeNumber(elements.collateralHaircut.value);
-  const shockedRequired = result.totalRequired * (1 + requiredShock / 100);
-  const shockedCollateral = result.inputs.collateral * (1 - collateralHaircut / 100);
-  const shockedAvailable = result.cashAfterTransfers + shockedCollateral;
-  const shockedBuffer = shockedAvailable - shockedRequired;
-  const shockedUtilization = shockedAvailable > 0 ? (shockedRequired / shockedAvailable) * 100 : 0;
-
-  renderMetricCards(elements.stressMetrics, [
-    { label: "Shocked Required", value: formatMoney(shockedRequired), delta: "Margin after the stress shock" },
-    { label: "Shocked Collateral", value: formatMoney(shockedCollateral), delta: "Collateral after haircut" },
-    { label: "Shocked Available", value: formatMoney(shockedAvailable), delta: "Cash plus shocked collateral" },
-    { label: "Shocked Utilization", value: formatPercent(shockedUtilization), delta: "Required divided by available" },
-  ]);
-
-  if (shockedBuffer < 0) {
-    renderStatusBox(
-      elements.stressStatus,
-      "stress",
-      "Scenario Shortfall",
-      formatMoney(Math.abs(shockedBuffer)),
-      "Under this stress case, the account would fall below the required margin threshold."
-    );
-  } else {
-    renderStatusBox(
-      elements.stressStatus,
-      "safe",
-      "Scenario Buffer",
-      formatMoney(shockedBuffer),
-      "The account still keeps a positive margin cushion under the selected stress assumptions."
-    );
-  }
 
   saveState();
 }
@@ -880,10 +363,14 @@ function tokenize(expression) {
 }
 
 
-function evaluateExpression(expression) {
-  const tokens = tokenize(expression.replaceAll(",", ""));
-  let position = 0;
+function evaluateExpression(rawExpression) {
+  const expression = rawExpression.trim().replace(/^=/, "").replaceAll(",", "");
+  if (!expression) {
+    return null;
+  }
 
+  const tokens = tokenize(expression);
+  let position = 0;
   const constants = { pi: Math.PI, e: Math.E };
   const functions = {
     abs: (value) => Math.abs(value),
@@ -1016,70 +503,154 @@ function evaluateExpression(expression) {
 }
 
 
+function getScratchpadComputedRows() {
+  return state.scratchpadRows.map((row) => {
+    const formula = row.formula.trim();
+    if (!formula) {
+      return { ...row, result: "", numericResult: 0, error: "" };
+    }
+
+    try {
+      const numericResult = evaluateExpression(formula);
+      return {
+        ...row,
+        result: numericResult.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+        numericResult,
+        error: "",
+      };
+    } catch (error) {
+      return { ...row, result: "", numericResult: 0, error: error.message || "Error" };
+    }
+  });
+}
+
+
+function focusScratchpadField(rowId, field) {
+  requestAnimationFrame(() => {
+    const selector = `input[data-row-id="${CSS.escape(rowId)}"][data-field="${field}"]`;
+    const input = elements.scratchpadSheetBody.querySelector(selector);
+    if (input) {
+      input.focus();
+      input.select();
+    }
+  });
+}
+
+
 function renderScratchpad() {
   if (!state.scratchpadRows.length) {
-    elements.scratchpadTotal.textContent = "No calculations yet.";
-    elements.scratchpadTable.innerHTML = `
-      <table>
-        <tbody>
-          <tr><td class="empty-cell">Add formulas to build a running total.</td></tr>
-        </tbody>
-      </table>
-    `;
-    saveState();
-    return;
+    state.scratchpadRows = createScratchpadRows();
   }
 
-  const total = state.scratchpadRows.reduce((sum, row) => sum + safeNumber(row.result), 0);
-  elements.scratchpadTotal.textContent = `Running total: ${total.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const rows = getScratchpadComputedRows();
+  const total = rows.reduce((sum, row) => sum + (row.error ? 0 : row.numericResult), 0);
+  elements.scratchpadTotal.textContent = `Grand total: ${total.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-  const rows = state.scratchpadRows.map((row, index) => ({
-    Row: index + 1,
-    Time: row.time,
-    Label: row.label,
-    Formula: row.formula,
-    Result: row.result,
-  }));
+  elements.scratchpadSheetBody.innerHTML = rows
+    .map(
+      (row, index) => `
+        <tr data-row-id="${escapeHtml(row.id)}">
+          <td class="sheet-row-number">${index + 1}</td>
+          <td>
+            <input
+              class="sheet-input"
+              type="text"
+              value="${escapeHtml(row.label)}"
+              placeholder="Optional"
+              data-row-id="${escapeHtml(row.id)}"
+              data-field="label"
+            >
+          </td>
+          <td>
+            <input
+              class="sheet-input"
+              type="text"
+              value="${escapeHtml(row.formula)}"
+              placeholder="=50000*1.05"
+              data-row-id="${escapeHtml(row.id)}"
+              data-field="formula"
+            >
+          </td>
+          <td class="sheet-result ${row.error ? "error" : ""}">
+            ${row.error ? escapeHtml(row.error) : escapeHtml(row.result || "")}
+          </td>
+          <td>
+            <button class="sheet-remove-button" type="button" data-remove-row="${escapeHtml(row.id)}">Remove</button>
+          </td>
+        </tr>
+      `
+    )
+    .join("");
 
-  rows.push({
-    Row: "",
-    Time: "",
-    Label: "TOTAL",
-    Formula: "",
-    Result: total,
+  elements.scratchpadSheetBody.querySelectorAll("input[data-row-id]").forEach((input) => {
+    input.addEventListener("input", (event) => {
+      const rowId = event.target.dataset.rowId;
+      const field = event.target.dataset.field;
+      const targetRow = state.scratchpadRows.find((row) => row.id === rowId);
+      if (!targetRow) {
+        return;
+      }
+      targetRow[field] = event.target.value;
+      renderScratchpad();
+    });
+
+    input.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter") {
+        return;
+      }
+
+      event.preventDefault();
+      const rowId = event.target.dataset.rowId;
+      const field = event.target.dataset.field;
+      const rowIndex = state.scratchpadRows.findIndex((row) => row.id === rowId);
+      if (rowIndex === -1) {
+        return;
+      }
+
+      if (rowIndex === state.scratchpadRows.length - 1) {
+        state.scratchpadRows.push(createScratchpadRow());
+        renderScratchpad();
+        focusScratchpadField(state.scratchpadRows[rowIndex + 1].id, field);
+        return;
+      }
+
+      focusScratchpadField(state.scratchpadRows[rowIndex + 1].id, field);
+    });
   });
 
-  renderTable(
-    elements.scratchpadTable,
-    [
-      { key: "Row", label: "Row" },
-      { key: "Time", label: "Time" },
-      { key: "Label", label: "Label" },
-      { key: "Formula", label: "Formula" },
-      { key: "Result", label: "Result", render: (value) => escapeHtml(safeNumber(value).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })) },
-    ],
-    rows,
-    "Add formulas to build a running total."
-  );
+  elements.scratchpadSheetBody.querySelectorAll("button[data-remove-row]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const rowId = button.dataset.removeRow;
+      state.scratchpadRows = state.scratchpadRows.filter((row) => row.id !== rowId);
+      if (!state.scratchpadRows.length) {
+        state.scratchpadRows = createScratchpadRows();
+      }
+      renderScratchpad();
+    });
+  });
 
   saveState();
 }
 
 
 function downloadScratchpadCsv() {
-  if (!state.scratchpadRows.length) {
-    return;
-  }
-  const lines = ["Time,Label,Formula,Result"];
-  state.scratchpadRows.forEach((row) => {
-    const escaped = [row.time, row.label, row.formula, row.result].map((value) => `"${String(value).replaceAll('"', '""')}"`);
-    lines.push(escaped.join(","));
+  const rows = getScratchpadComputedRows();
+  const lines = ["Row,Label,Formula,Result"];
+  rows.forEach((row, index) => {
+    const values = [
+      index + 1,
+      row.label,
+      row.formula,
+      row.error ? row.error : row.result,
+    ].map((value) => `"${String(value ?? "").replaceAll('"', '""')}"`);
+    lines.push(values.join(","));
   });
+
   const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = "scratchpad_history.csv";
+  link.download = "peakcalcy_sheet.csv";
   document.body.appendChild(link);
   link.click();
   link.remove();
@@ -1101,19 +672,6 @@ function activateTab(name) {
 }
 
 
-function resetLiquidationArea() {
-  state.csvData = null;
-  state.mapping = {};
-  state.liquidationResult = null;
-  elements.positionsFile.value = "";
-  elements.csvPreviewWrap.classList.add("hidden");
-  elements.mappingWrap.classList.add("hidden");
-  elements.csvPreview.innerHTML = "";
-  elements.mappingWrap.innerHTML = "";
-  renderLiquidationOutput();
-}
-
-
 function bindEvents() {
   elements.tabButtons.forEach((button) => {
     button.addEventListener("click", () => activateTab(button.dataset.tabTarget));
@@ -1131,7 +689,6 @@ function bindEvents() {
       elements.includeDeliveryMargin.checked
     );
     renderFundsOutput();
-    saveState();
   });
 
   elements.resetFundsButton.addEventListener("click", () => {
@@ -1140,93 +697,15 @@ function bindEvents() {
     elements.includeDeliveryMargin.checked = false;
     state.fundsResult = null;
     renderFundsOutput();
-    saveState();
   });
 
-  elements.positionsFile.addEventListener("change", async (event) => {
-    const file = event.target.files?.[0];
-    if (!file) {
-      resetLiquidationArea();
-      return;
-    }
-    const text = await file.text();
-    state.csvData = parseCSV(text);
-    state.mapping = {};
-    state.liquidationResult = null;
-    renderCsvPreview();
-    renderMappingControls();
-    renderLiquidationOutput();
-  });
-
-  elements.runLiquidationButton.addEventListener("click", () => {
-    if (!state.csvData || !state.csvData.rows.length) {
-      alert("Upload a positions CSV first.");
-      return;
-    }
-
-    const mapping = state.mapping;
-    if (!mapping.symbol || !mapping.quantity) {
-      alert("Map at least the symbol and quantity columns.");
-      return;
-    }
-    if (!mapping.total_margin && !mapping.span_margin && !mapping.exposure_margin) {
-      alert("Map either a total margin column or SPAN and Exposure columns.");
-      return;
-    }
-
-    const targetRelease = Math.max(safeNumber(elements.targetRelease.value), 0);
-    const prepared = preparePositions();
-    if (prepared.skipped.length && !prepared.positions.length) {
-      alert("Rows were skipped and no usable positions remain.");
-      return;
-    }
-    if (!prepared.positions.length) {
-      alert("No usable positions were found after parsing the CSV.");
-      return;
-    }
-
-    state.liquidationResult = {
-      ...runLiquidationScan(prepared.positions, targetRelease),
-      targetRelease,
-      skipped: prepared.skipped,
-    };
-    renderLiquidationOutput();
-  });
-
-  elements.clearLiquidationButton.addEventListener("click", resetLiquidationArea);
-
-  elements.requiredShock.addEventListener("input", renderStressOutput);
-  elements.collateralHaircut.addEventListener("input", renderStressOutput);
-
-  elements.addScratchpadButton.addEventListener("click", () => {
-    const expression = elements.scratchpadExpression.value.trim();
-    if (!expression) {
-      alert("Enter a formula before adding a line.");
-      return;
-    }
-    try {
-      const result = evaluateExpression(expression);
-      state.scratchpadRows.push({
-        time: new Date().toLocaleTimeString("en-IN", { hour12: false }),
-        label: elements.scratchpadLabel.value.trim() || "-",
-        formula: expression,
-        result,
-      });
-      elements.scratchpadLabel.value = "";
-      elements.scratchpadExpression.value = "";
-      renderScratchpad();
-    } catch (error) {
-      alert(error.message || "Could not evaluate formula.");
-    }
-  });
-
-  elements.removeScratchpadButton.addEventListener("click", () => {
-    state.scratchpadRows.pop();
+  elements.addScratchpadRowButton.addEventListener("click", () => {
+    state.scratchpadRows.push(createScratchpadRow());
     renderScratchpad();
   });
 
   elements.clearScratchpadButton.addEventListener("click", () => {
-    state.scratchpadRows = [];
+    state.scratchpadRows = createScratchpadRows();
     renderScratchpad();
   });
 
@@ -1239,9 +718,6 @@ function init() {
   bindEvents();
   activateTab(state.activeTab);
   renderFundsOutput();
-  renderCsvPreview();
-  renderMappingControls();
-  renderLiquidationOutput();
   renderScratchpad();
 }
 

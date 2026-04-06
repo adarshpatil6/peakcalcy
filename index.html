@@ -6,7 +6,7 @@
     <title>PeakCalcy</title>
     <meta
       name="description"
-      content="PeakCalcy is an offline calculator for funds parsing, liquidation estimation, stress testing, and simple desk calculations."
+      content="PeakCalcy is a simple browser calculator for funds checks and quick desk math."
     >
     <link rel="stylesheet" href="styles.css">
   </head>
@@ -16,16 +16,14 @@
         <div class="hero-copy">
           <h1>PeakCalcy</h1>
           <p class="hero-text">
-            A simple offline calculator for funds, liquidation checks, stress testing, and quick desk math.
+            A simple browser calculator for funds checks and quick desk math.
           </p>
         </div>
       </header>
 
       <section class="toolbar">
         <div class="tablist" role="tablist" aria-label="PeakCalcy sections">
-          <button class="tab-button active" data-tab-target="funds" role="tab" aria-selected="true">Funds and Calcy</button>
-          <button class="tab-button" data-tab-target="liquidation" role="tab" aria-selected="false">Liquidation</button>
-          <button class="tab-button" data-tab-target="stress" role="tab" aria-selected="false">Stress Test</button>
+          <button class="tab-button active" data-tab-target="funds" role="tab" aria-selected="true">Funds</button>
           <button class="tab-button" data-tab-target="scratchpad" role="tab" aria-selected="false">Scratchpad</button>
         </div>
         <p class="toolbar-note">Everything runs in your browser. Nothing is uploaded anywhere.</p>
@@ -66,7 +64,7 @@
 
             <section class="panel">
               <div class="section-heading">
-                <h2>Calcy Snapshot</h2>
+                <h2>Funds Snapshot</h2>
                 <p>Available funds, required usage, shortfall or buffer, and utilization.</p>
               </div>
 
@@ -100,138 +98,36 @@
           </div>
         </section>
 
-        <section class="tab-panel" data-tab-panel="liquidation" role="tabpanel">
-          <div class="panel-grid">
-            <section class="panel">
-              <div class="section-heading">
-                <h2>Portfolio Deep Scan</h2>
-                <p>Upload a positions CSV and estimate margin released per lot using the file's margin columns.</p>
-              </div>
-
-              <div class="field-stack">
-                <label class="field-label" for="positions-file">Positions CSV</label>
-                <input id="positions-file" type="file" accept=".csv">
-              </div>
-
-              <div class="field-stack">
-                <label class="field-label" for="target-release">Target margin to release</label>
-                <input id="target-release" class="text-input" type="number" min="0" step="1000" value="0">
-              </div>
-
-              <div id="csv-preview-wrap" class="table-panel hidden">
-                <div class="table-header">
-                  <h3>CSV preview</h3>
-                  <span class="subtle-text">First 8 rows only.</span>
-                </div>
-                <div class="table-shell" id="csv-preview"></div>
-              </div>
-
-              <div id="mapping-wrap" class="mapping-grid hidden"></div>
-
-              <div class="button-row">
-                <button id="run-liquidation-button" class="primary-button" type="button">Run deep scan</button>
-                <button id="clear-liquidation-button" class="ghost-button" type="button">Clear upload</button>
-              </div>
-            </section>
-
-            <section class="panel">
-              <div class="section-heading">
-                <h2>Liquidation Output</h2>
-                <p>Offline estimate only. This is not a live broker-side margin response.</p>
-              </div>
-
-              <div id="liquidation-metrics" class="metric-grid"></div>
-              <div id="liquidation-alert" class="empty-state">Upload a CSV and run the scan.</div>
-              <div id="liquidation-cards"></div>
-
-              <div class="table-panel">
-                <div class="table-header">
-                  <h3>Per-lot efficiency ranking</h3>
-                </div>
-                <div class="table-shell" id="baseline-table"></div>
-              </div>
-
-              <div class="table-panel">
-                <div class="table-header">
-                  <h3>Step-by-step simulation</h3>
-                </div>
-                <div class="table-shell" id="steps-table"></div>
-              </div>
-            </section>
-          </div>
-        </section>
-
-        <section class="tab-panel" data-tab-panel="stress" role="tabpanel">
-          <div class="panel-grid">
-            <section class="panel">
-              <div class="section-heading">
-                <h2>Stress Controls</h2>
-                <p>Model a jump in required margin and a haircut on collateral.</p>
-              </div>
-
-              <div class="slider-group">
-                <label class="slider-label" for="required-shock">Required margin shock: <strong id="required-shock-value">0%</strong></label>
-                <input id="required-shock" type="range" min="0" max="75" step="1" value="0">
-              </div>
-
-              <div class="slider-group">
-                <label class="slider-label" for="collateral-haircut">Collateral haircut: <strong id="collateral-haircut-value">0%</strong></label>
-                <input id="collateral-haircut" type="range" min="0" max="75" step="1" value="0">
-              </div>
-            </section>
-
-            <section class="panel">
-              <div class="section-heading">
-                <h2>Scenario Output</h2>
-                <p>The stress view uses the latest parsed Funds snapshot.</p>
-              </div>
-
-              <div id="stress-metrics" class="metric-grid"></div>
-              <div id="stress-status" class="empty-state">Parse the Funds tab first to enable stress testing.</div>
-            </section>
-          </div>
-        </section>
-
         <section class="tab-panel" data-tab-panel="scratchpad" role="tabpanel">
-          <div class="panel-grid">
-            <section class="panel">
-              <div class="section-heading">
-                <h2>Desk Scratchpad</h2>
-                <p>Safe formula evaluation for quick arithmetic and a running total.</p>
-              </div>
+          <section class="panel scratchpad-panel">
+            <div class="section-heading">
+              <h2>Excel Scratchpad</h2>
+              <p>Type labels and formulas like <code>=50000*1.05</code> or <code>12500+4500</code>. Results update instantly.</p>
+            </div>
 
-              <div class="inline-form">
-                <div class="field-stack">
-                  <label class="field-label" for="scratchpad-label">Label</label>
-                  <input id="scratchpad-label" class="text-input" type="text" placeholder="Optional">
-                </div>
-                <div class="field-stack field-grow">
-                  <label class="field-label" for="scratchpad-expression">Formula</label>
-                  <input id="scratchpad-expression" class="text-input" type="text" placeholder="50000 * 1.05 or 12500 + 4500">
-                </div>
-                <div class="field-stack field-compact">
-                  <label class="field-label">&nbsp;</label>
-                  <button id="add-scratchpad-button" class="primary-button" type="button">Add line</button>
-                </div>
-              </div>
+            <div class="sheet-toolbar">
+              <button id="add-scratchpad-row-button" class="primary-button" type="button">Add row</button>
+              <button id="clear-scratchpad-button" class="ghost-button" type="button">Clear sheet</button>
+              <button id="download-scratchpad-button" class="ghost-button" type="button">Download CSV</button>
+            </div>
 
-              <div class="button-row">
-                <button id="remove-scratchpad-button" class="ghost-button" type="button">Remove last line</button>
-                <button id="clear-scratchpad-button" class="ghost-button" type="button">Clear scratchpad</button>
-                <button id="download-scratchpad-button" class="ghost-button" type="button">Download CSV</button>
-              </div>
-            </section>
+            <div id="scratchpad-total" class="sheet-total">Grand total: 0.00</div>
 
-            <section class="panel">
-              <div class="section-heading">
-                <h2>Scratchpad History</h2>
-                <p>A compact running log with totals saved in the browser.</p>
-              </div>
-
-              <div id="scratchpad-total" class="summary-total empty-state">No calculations yet.</div>
-              <div class="table-shell" id="scratchpad-table"></div>
-            </section>
-          </div>
+            <div class="table-shell sheet-shell">
+              <table class="sheet-table">
+                <thead>
+                  <tr>
+                    <th>Row</th>
+                    <th>Label</th>
+                    <th>Formula</th>
+                    <th>Result</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="scratchpad-sheet-body"></tbody>
+              </table>
+            </div>
+          </section>
         </section>
       </main>
     </div>
