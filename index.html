@@ -192,12 +192,6 @@
       .market-change.down { color: var(--accent); }
       .market-change.flat { color: var(--muted); }
 
-      .market-meta {
-        margin-top: 8px;
-        color: var(--muted);
-        font-size: 0.82rem;
-      }
-
       .market-card.loading .market-price,
       .market-card.loading .market-change {
         color: var(--muted);
@@ -627,7 +621,6 @@
           </div>
           <div id="marketPriceNSEI" class="market-price">Loading...</div>
           <div id="marketChangeNSEI" class="market-change flat">Refreshing from Yahoo Finance</div>
-          <div id="marketMetaNSEI" class="market-meta">Waiting for live quote</div>
         </article>
 
         <article id="marketCardNSEBANK" class="market-card loading" tabindex="-1">
@@ -637,7 +630,6 @@
           </div>
           <div id="marketPriceNSEBANK" class="market-price">Loading...</div>
           <div id="marketChangeNSEBANK" class="market-change flat">Refreshing from Yahoo Finance</div>
-          <div id="marketMetaNSEBANK" class="market-meta">Waiting for live quote</div>
         </article>
 
         <article id="marketCardBSESN" class="market-card loading" tabindex="-1">
@@ -647,7 +639,6 @@
           </div>
           <div id="marketPriceBSESN" class="market-price">Loading...</div>
           <div id="marketChangeBSESN" class="market-change flat">Refreshing from Yahoo Finance</div>
-          <div id="marketMetaBSESN" class="market-meta">Waiting for live quote</div>
         </article>
       </section>
 
@@ -690,7 +681,6 @@
                   <h2 class="panel-title">Margin Snapshot</h2>
                   <p class="panel-copy">Status, requirement view, delivery treatment, and usage percentage.</p>
                 </div>
-                <div class="section-note">Regex-based parser</div>
               </div>
 
               <div class="metric-grid">
@@ -891,19 +881,16 @@
               card: document.getElementById("marketCardNSEI"),
               price: document.getElementById("marketPriceNSEI"),
               change: document.getElementById("marketChangeNSEI"),
-              meta: document.getElementById("marketMetaNSEI"),
             },
             NSEBANK: {
               card: document.getElementById("marketCardNSEBANK"),
               price: document.getElementById("marketPriceNSEBANK"),
               change: document.getElementById("marketChangeNSEBANK"),
-              meta: document.getElementById("marketMetaNSEBANK"),
             },
             BSESN: {
               card: document.getElementById("marketCardBSESN"),
               price: document.getElementById("marketPriceBSESN"),
               change: document.getElementById("marketChangeBSESN"),
-              meta: document.getElementById("marketMetaBSESN"),
             },
           },
         };
@@ -1192,7 +1179,6 @@
           target.change.className = "market-change flat";
           target.price.textContent = "Unavailable";
           target.change.textContent = "Quote refresh failed";
-          target.meta.textContent = message;
         }
 
         function renderMarketSuccess(key, quote) {
@@ -1205,7 +1191,6 @@
           });
           target.change.className = `market-change ${changeClass}`;
           target.change.textContent = `${formatSignedNumber(quote.change)} (${formatSignedNumber(quote.changePercent)}%)`;
-          target.meta.textContent = `Yahoo Finance | ${quote.timestamp}`;
         }
 
         async function fetchJsonThroughProxy(url) {
