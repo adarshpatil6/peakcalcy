@@ -307,7 +307,7 @@
 
       .metric-grid {
         display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
         gap: 14px;
         margin-top: 22px;
       }
@@ -317,6 +317,7 @@
         border-radius: var(--radius-lg);
         background: var(--panel);
         padding: 16px;
+        min-width: 0;
       }
 
       .metric-card.status-available {
@@ -339,9 +340,10 @@
 
       .metric-value {
         margin-top: 10px;
-        font-size: clamp(1.45rem, 2vw, 2rem);
+        font-size: clamp(1.2rem, 1.55vw, 1.7rem);
         font-weight: 700;
-        line-height: 1.2;
+        line-height: 1.15;
+        font-variant-numeric: tabular-nums;
         overflow-wrap: anywhere;
       }
 
@@ -1186,7 +1188,7 @@
 
         function renderMarketError(key, message) {
           const target = elements.markets[key];
-          target.card.classList.add("loading");
+          target.card.classList.remove("loading");
           target.change.className = "market-change flat";
           target.price.textContent = "Unavailable";
           target.change.textContent = "Quote refresh failed";
@@ -1208,19 +1210,25 @@
 
         async function fetchJsonThroughProxy(url) {
           const allOriginsUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
-          try {
-            const response = await fetch(allOriginsUrl, { cache: "no-store" });
-            if (!response.ok) {
-              throw new Error(`AllOrigins HTTP ${response.status}`);
+          const fetchWithTimeout = async (targetUrl, timeoutMs) => {
+            const controller = new AbortController();
+            const timer = window.setTimeout(() => controller.abort(), timeoutMs);
+            try {
+              const response = await fetch(targetUrl, { cache: "no-store", signal: controller.signal });
+              if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+              }
+              return await response.json();
+            } finally {
+              window.clearTimeout(timer);
             }
-            return await response.json();
+          };
+
+          try {
+            return await fetchWithTimeout(allOriginsUrl, 6500);
           } catch (primaryError) {
             const whateverOriginUrl = `https://whateverorigin.org/get?url=${encodeURIComponent(url)}`;
-            const response = await fetch(whateverOriginUrl, { cache: "no-store" });
-            if (!response.ok) {
-              throw new Error(`WhateverOrigin HTTP ${response.status}`);
-            }
-            const wrapped = await response.json();
+            const wrapped = await fetchWithTimeout(whateverOriginUrl, 6500);
             if (!wrapped || typeof wrapped.contents !== "string") {
               throw primaryError;
             }
