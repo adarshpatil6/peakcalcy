@@ -254,7 +254,7 @@
       }
 
       .section-kicker { margin-bottom: 10px; }
-      .option-list, .button-row, .table-shell, .terminal-block, .running-total { margin-top: 18px; }
+      .option-list, .button-row, .table-shell, .proof-shell, .running-total { margin-top: 18px; }
       .option-list { display: grid; gap: 12px; }
 
       .option-item {
@@ -298,6 +298,12 @@
       }
 
       .btn-secondary:hover, .btn-secondary:focus-visible { border-color: var(--accent); color: var(--accent); }
+      .btn:disabled {
+        opacity: 0.56;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+      }
 
       .metric-grid {
         display: grid;
@@ -352,40 +358,86 @@
 
       .metric-subtext { margin-top: 8px; line-height: 1.5; }
 
-      .terminal-block {
+      .proof-shell {
+        border: 1px solid var(--border);
         border-radius: var(--radius-lg);
+        background: var(--panel-soft);
         overflow: hidden;
-        background: var(--terminal);
       }
 
-      .terminal-bar {
+      .proof-toolbar {
         display: flex;
-        align-items: center;
-        gap: 8px;
-        padding: 12px 16px;
-        background: rgba(255, 255, 255, 0.06);
-        color: #f3f4f6;
-        font-size: 0.88rem;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 14px;
+        padding: 16px 18px 14px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .proof-copy {
+        margin-top: 6px;
+        color: var(--muted);
+        font-size: 0.9rem;
+        line-height: 1.5;
+      }
+
+      .proof-table-shell {
+        margin-top: 0;
+        border: 0;
+        border-radius: 0;
+      }
+
+      .proof-table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      .proof-table th, .proof-table td {
+        padding: 10px 14px;
+        border-bottom: 1px solid rgba(223, 229, 239, 0.95);
+        text-align: left;
+        vertical-align: middle;
+      }
+
+      .proof-table thead th {
+        color: var(--muted);
+        font-size: 0.78rem;
         font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        background: var(--panel);
       }
 
-      .terminal-dot {
-        width: 10px;
-        height: 10px;
-        border-radius: 999px;
-        background: #ff6b6b;
-        box-shadow: 16px 0 0 #f59e0b, 32px 0 0 #10b981;
+      .proof-group-row th {
+        padding-top: 14px;
+        padding-bottom: 10px;
+        background: transparent;
+        color: var(--text);
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
       }
 
-      .proof-output {
-        margin: 0;
-        padding: 18px 20px 20px;
-        color: var(--terminal-text);
-        font-family: Consolas, "SFMono-Regular", Monaco, monospace;
-        font-size: 0.94rem;
-        line-height: 1.75;
-        white-space: pre-wrap;
-        overflow: auto;
+      .proof-value {
+        width: 34%;
+        text-align: right;
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+      }
+
+      .proof-value.negative { color: var(--accent); }
+      .proof-value.positive { color: var(--good); }
+
+      .proof-empty td {
+        padding: 18px 14px;
+        color: var(--muted);
+      }
+
+      .proof-table tbody tr:last-child td,
+      .proof-table tbody tr:last-child th {
+        border-bottom: 0;
       }
 
       .scratchpad-toolbar {
@@ -602,6 +654,8 @@
         .header-row, .section-header { flex-direction: column; }
         .header-actions { width: 100%; }
         .market-strip, .metric-grid, .scratchpad-toolbar, .shortcut-grid { grid-template-columns: 1fr; }
+        .proof-toolbar { flex-direction: column; }
+        .proof-value { white-space: normal; }
         .btn, .option-item { width: 100%; justify-content: center; }
         .button-row > * { flex: 1 1 100%; }
         .funds-input { min-height: 300px; }
@@ -718,12 +772,29 @@
                 </article>
               </div>
 
-              <div class="terminal-block">
-                <div class="terminal-bar">
-                  <span class="terminal-dot" aria-hidden="true"></span>
-                  <span>Math Proof</span>
+              <div class="proof-shell">
+                <div class="proof-toolbar">
+                  <div>
+                    <div class="metric-label">Math Proof</div>
+                    <div class="proof-copy">Compact breakdown of available funds, requirement, and result.</div>
+                  </div>
+                  <button id="exportProofButton" class="btn btn-secondary proof-download" type="button" disabled>Download CSV</button>
                 </div>
-                <pre id="mathProof" class="proof-output">Paste the funds text on the left and click Calculate.</pre>
+                <div class="table-shell proof-table-shell">
+                  <table class="proof-table">
+                    <thead>
+                      <tr>
+                        <th>Metric</th>
+                        <th>Value</th>
+                      </tr>
+                    </thead>
+                    <tbody id="mathProofBody">
+                      <tr class="proof-empty">
+                        <td colspan="2">Paste the funds text on the left and click Calculate.</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           </section>
@@ -850,6 +921,7 @@
         const STORAGE_KEY = "calculator-dashboard-state-v1";
 
         let scratchpadEntries = [];
+        let currentProofRows = [];
         const scratchpadHistory = [];
         let marketRefreshInFlight = false;
         let lastInteractionRefreshAt = 0;
@@ -875,7 +947,8 @@
           deliverySubtext: document.getElementById("deliverySubtext"),
           usedPctValue: document.getElementById("usedPctValue"),
           usedPctSubtext: document.getElementById("usedPctSubtext"),
-          mathProof: document.getElementById("mathProof"),
+          mathProofBody: document.getElementById("mathProofBody"),
+          exportProofButton: document.getElementById("exportProofButton"),
           scratchpadLabelInput: document.getElementById("scratchpadLabelInput"),
           scratchpadInput: document.getElementById("scratchpadInput"),
           addScratchpadButton: document.getElementById("addScratchpadButton"),
@@ -936,6 +1009,22 @@
 
         function formatPercent(value) {
           return `${safeNumber(value).toFixed(2)}%`;
+        }
+
+        function downloadCsvFile(lines, filename) {
+          const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8" });
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement("a");
+          link.href = url;
+          link.download = filename;
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
+          URL.revokeObjectURL(url);
+        }
+
+        function csvCell(value) {
+          return `"${String(value ?? "").replaceAll('"', '""')}"`;
         }
 
         function formatSignedNumber(value) {
@@ -1098,6 +1187,80 @@
           };
         }
 
+        function buildMathProofRows(result) {
+          return [
+            { section: "Available Funds", label: "Opening Balance", value: result.extracted.opening_balance, format: "money" },
+            { section: "Available Funds", label: "Payin", value: result.extracted.payin, format: "money" },
+            { section: "Available Funds", label: "Payout", value: result.extracted.payout, format: "money" },
+            { section: "Available Funds", label: "Net Cash Side", value: result.totalAvailableCashSide, format: "money" },
+            { section: "Available Funds", label: "Total Collateral", value: result.extracted.total_collateral, format: "money" },
+            { section: "Available Funds", label: "Total Available", value: result.totalAvailable, format: "money" },
+            { section: "Requirement", label: "SPAN", value: result.extracted.span, format: "money" },
+            { section: "Requirement", label: "Exposure", value: result.extracted.exposure, format: "money" },
+            { section: "Requirement", label: "Option Premium Used", value: result.optionPremiumUsed, format: "money" },
+            { section: "Requirement", label: "Delivery Margin Used", value: result.deliveryMarginUsed, format: "money" },
+            { section: "Requirement", label: "Final Required", value: result.requiredMargin, format: "money" },
+            {
+              section: "Outcome",
+              label: "Net Result",
+              value: result.finalResult,
+              format: "signed-money",
+              tone: result.finalResult < 0 ? "negative" : result.finalResult > 0 ? "positive" : "",
+            },
+            {
+              section: "Outcome",
+              label: "Shortfall",
+              value: result.shortfall,
+              format: "money",
+              tone: result.shortfall > 0 ? "negative" : "",
+            },
+            {
+              section: "Outcome",
+              label: "Surplus",
+              value: result.surplus,
+              format: "money",
+              tone: result.surplus > 0 ? "positive" : "",
+            },
+            {
+              section: "Outcome",
+              label: "Margin Used %",
+              value: result.marginUsedPct,
+              format: "percent",
+              tone: result.marginUsedPct > 100 ? "negative" : "",
+            },
+          ];
+        }
+
+        function formatProofValue(row) {
+          if (row.format === "percent") {
+            return formatPercent(row.value);
+          }
+          if (row.format === "signed-money") {
+            return formatSignedMoney(row.value);
+          }
+          return formatMoney(row.value);
+        }
+
+        function renderMathProof(result) {
+          currentProofRows = buildMathProofRows(result);
+          let currentSection = "";
+          elements.mathProofBody.innerHTML = currentProofRows.map((row) => {
+            const sectionHeader = row.section !== currentSection
+              ? `<tr class="proof-group-row"><th colspan="2">${escapeHtml(row.section)}</th></tr>`
+              : "";
+            currentSection = row.section;
+            const toneClass = row.tone ? ` ${row.tone}` : "";
+            return `${sectionHeader}<tr><td>${escapeHtml(row.label)}</td><td class="proof-value${toneClass}">${escapeHtml(formatProofValue(row))}</td></tr>`;
+          }).join("");
+          elements.exportProofButton.disabled = currentProofRows.length === 0;
+        }
+
+        function resetMathProof() {
+          currentProofRows = [];
+          elements.mathProofBody.innerHTML = '<tr class="proof-empty"><td colspan="2">Paste the funds text on the left and click Calculate.</td></tr>';
+          elements.exportProofButton.disabled = true;
+        }
+
         function renderMetrics(result) {
           const available = result.finalResult >= 0;
           elements.statusCard.className = `metric-card ${available ? "status-available" : "status-shortfall"}`;
@@ -1115,25 +1278,7 @@
             : "Excluded from requirement.";
           elements.usedPctValue.textContent = formatPercent(result.marginUsedPct);
           elements.usedPctSubtext.textContent = `${formatMoney(result.totalAvailable)} total available base`;
-          elements.mathProof.textContent = [
-            `OPENING BALANCE      : ${formatMoney(result.extracted.opening_balance)}`,
-            `PAYIN                : ${formatMoney(result.extracted.payin)}`,
-            `PAYOUT               : ${formatMoney(result.extracted.payout)}`,
-            `NET CASH SIDE        : ${formatMoney(result.totalAvailableCashSide)}`,
-            `TOTAL COLLATERAL     : ${formatMoney(result.extracted.total_collateral)}`,
-            `TOTAL AVAILABLE      : ${formatMoney(result.totalAvailable)}`,
-            "",
-            `SPAN                 : ${formatMoney(result.extracted.span)}`,
-            `EXPOSURE             : ${formatMoney(result.extracted.exposure)}`,
-            `OPTION PREMIUM USED  : ${formatMoney(result.optionPremiumUsed)}`,
-            `DELIVERY MARGIN USED : ${formatMoney(result.deliveryMarginUsed)}`,
-            "",
-            `FINAL REQUIRED       : ${formatMoney(result.requiredMargin)}`,
-            `NET RESULT           : ${formatMoney(result.finalResult)}`,
-            `SHORTFALL            : ${formatMoney(result.shortfall)}`,
-            `SURPLUS              : ${formatMoney(result.surplus)}`,
-            `MARGIN USED %        : ${formatPercent(result.marginUsedPct)}`,
-          ].join("\n");
+          renderMathProof(result);
         }
 
         function resetMetrics() {
@@ -1146,7 +1291,7 @@
           elements.deliverySubtext.textContent = "Currently excluded";
           elements.usedPctValue.textContent = "0.00%";
           elements.usedPctSubtext.textContent = "Based on total available funds";
-          elements.mathProof.textContent = "Paste the funds text on the left and click Calculate.";
+          resetMathProof();
         }
 
         function calculateRms(showAlert) {
@@ -1576,19 +1721,28 @@
               entry.label || "",
               entry.formula || "",
               entry.resultText || "",
-            ].map((value) => `"${String(value).replaceAll('"', '""')}"`);
+            ].map(csvCell);
             lines.push(values.join(","));
           });
 
-          const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8" });
-          const url = URL.createObjectURL(blob);
-          const link = document.createElement("a");
-          link.href = url;
-          link.download = "calculator_scratchpad.csv";
-          document.body.appendChild(link);
-          link.click();
-          link.remove();
-          URL.revokeObjectURL(url);
+          downloadCsvFile(lines, "calculator_scratchpad.csv");
+        }
+
+        function exportProofCsv() {
+          if (!currentProofRows.length) {
+            alert("Calculate once to generate the math proof before exporting.");
+            return;
+          }
+
+          const lines = ["Section,Metric,Value"];
+          currentProofRows.forEach((row) => {
+            lines.push([
+              csvCell(row.section),
+              csvCell(row.label),
+              csvCell(formatProofValue(row)),
+            ].join(","));
+          });
+          downloadCsvFile(lines, "calculator_math_proof.csv");
         }
 
         function duplicateLastScratchpadEntry() {
@@ -1628,6 +1782,7 @@
 
         elements.calculateButton.addEventListener("click", () => calculateRms(true));
         elements.clearButton.addEventListener("click", clearRms);
+        elements.exportProofButton.addEventListener("click", exportProofCsv);
         elements.exportScratchpadButton.addEventListener("click", exportScratchpadCsv);
         elements.darkModeToggle.addEventListener("click", () => applyTheme(!document.body.classList.contains("theme-dark")));
         elements.pinQuotesToggle.addEventListener("click", () => applyPinnedQuotes(!elements.marketStrip.classList.contains("pinned")));
