@@ -580,6 +580,7 @@
           { key: "NSEBANK", symbol: "^NSEBANK" },
           { key: "BSESN", symbol: "^BSESN" },
         ];
+        const MARKET_REFRESH_THROTTLE_MS = 5000;
 
         const scratchpadEntries = [];
         let marketRefreshInFlight = false;
@@ -821,14 +822,31 @@
           target.meta.textContent = `Yahoo Finance | ${quote.timestamp}`;
         }
 
+        async function fetchJsonThroughProxy(url) {
+          const allOriginsUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+          try {
+            const response = await fetch(allOriginsUrl, { cache: "no-store" });
+            if (!response.ok) {
+              throw new Error(`AllOrigins HTTP ${response.status}`);
+            }
+            return await response.json();
+          } catch (primaryError) {
+            const whateverOriginUrl = `https://whateverorigin.org/get?url=${encodeURIComponent(url)}`;
+            const response = await fetch(whateverOriginUrl, { cache: "no-store" });
+            if (!response.ok) {
+              throw new Error(`WhateverOrigin HTTP ${response.status}`);
+            }
+            const wrapped = await response.json();
+            if (!wrapped || typeof wrapped.contents !== "string") {
+              throw primaryError;
+            }
+            return JSON.parse(wrapped.contents);
+          }
+        }
+
         async function fetchYahooQuote(symbol) {
           const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=2m&range=1d&includePrePost=false&corsDomain=finance.yahoo.com&.tsrc=finance`;
-          const response = await fetch(url, { cache: "no-store" });
-          if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
-          }
-
-          const payload = await response.json();
+          const payload = await fetchJsonThroughProxy(url);
           const meta = payload && payload.chart && payload.chart.result && payload.chart.result[0] && payload.chart.result[0].meta;
           if (!meta) {
             throw new Error("No chart data");
@@ -875,12 +893,12 @@
         }
 
         function refreshDashboardFromClick() {
+          calculateRms(false);
           const now = Date.now();
-          if (now - lastInteractionRefreshAt < 1200) {
+          if (now - lastInteractionRefreshAt < MARKET_REFRESH_THROTTLE_MS) {
             return;
           }
           lastInteractionRefreshAt = now;
-          calculateRms(false);
           refreshMarkets();
         }
 
@@ -1077,7 +1095,7 @@
         resetMetrics();
         renderScratchpad();
         refreshMarkets();
-        window.setInterval(refreshMarkets, 30000);
+        window.setInterval(refreshMarkets, 45000);
       })();
     </script>
   </body>
