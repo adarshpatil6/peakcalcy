@@ -1,4 +1,4 @@
-const STORAGE_KEY = "rms-pro-sentinel-static-v1";
+const STORAGE_KEY = "peakcalcy-static-v1";
 
 const FUND_LABELS = {
   opening_balance: ["Opening balance", "Opening Balance"],

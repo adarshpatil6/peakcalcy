@@ -3,10 +3,10 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>RMS Pro Sentinel</title>
+    <title>PeakCalcy</title>
     <meta
       name="description"
-      content="Offline RMS Pro Sentinel for funds parsing, liquidation estimation, stress testing, and desk calculator workflows."
+      content="PeakCalcy is an offline calculator and margin workspace for funds parsing, liquidation estimation, stress testing, and desk calculations."
     >
     <link rel="stylesheet" href="styles.css">
   </head>
@@ -15,9 +15,9 @@
       <header class="hero">
         <div class="hero-copy">
           <p class="eyebrow">Static project page</p>
-          <h1>RMS Pro Sentinel</h1>
+          <h1>PeakCalcy</h1>
           <p class="hero-text">
-            An offline RMS workspace for daily desk operations. Paste a Funds tab summary, estimate
+            A simple offline calculator for daily desk operations. Paste a Funds tab summary, estimate
             liquidation impact from CSV uploads, run stress scenarios, and keep quick calculations in
             a browser-only scratchpad.
           </p>
@@ -34,7 +34,7 @@
           </div>
           <div class="hero-stat">
             <span class="hero-stat-label">Best for</span>
-            <strong class="hero-stat-value">RMS checks and desk math</strong>
+            <strong class="hero-stat-value">Desk checks and quick math</strong>
           </div>
           <div class="hero-stat">
             <span class="hero-stat-label">Persistence</span>
@@ -44,8 +44,8 @@
       </header>
 
       <section class="toolbar">
-        <div class="tablist" role="tablist" aria-label="RMS sections">
-          <button class="tab-button active" data-tab-target="funds" role="tab" aria-selected="true">Funds and RMS</button>
+        <div class="tablist" role="tablist" aria-label="PeakCalcy sections">
+          <button class="tab-button active" data-tab-target="funds" role="tab" aria-selected="true">Funds and Margin</button>
           <button class="tab-button" data-tab-target="liquidation" role="tab" aria-selected="false">Liquidation</button>
           <button class="tab-button" data-tab-target="stress" role="tab" aria-selected="false">Stress Test</button>
           <button class="tab-button" data-tab-target="scratchpad" role="tab" aria-selected="false">Scratchpad</button>
@@ -59,7 +59,7 @@
             <section class="panel">
               <div class="section-heading">
                 <h2>Funds Parser</h2>
-                <p>Paste the raw Funds tab summary and extract the RMS numbers with label-driven regex.</p>
+                <p>Paste the raw Funds tab summary and extract the key numbers with label-driven regex.</p>
               </div>
 
               <label class="field-label" for="funds-input">Funds summary</label>
@@ -88,7 +88,7 @@
 
             <section class="panel">
               <div class="section-heading">
-                <h2>RMS Snapshot</h2>
+                <h2>Margin Snapshot</h2>
                 <p>Margin availability, required margin, shortfall or buffer, and utilization.</p>
               </div>
 

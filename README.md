@@ -1,9 +1,9 @@
-# RMS Pro Sentinel
+# PeakCalcy
 
-RMS Pro Sentinel is now a static GitHub Pages app. It runs entirely in the browser and includes:
+PeakCalcy is now a static GitHub Pages app. It runs entirely in the browser and includes:
 
 - Funds tab parsing with regex extraction
-- RMS margin shortfall or buffer analysis
+- Margin shortfall or buffer analysis
 - Offline liquidation estimation from uploaded CSV margin columns
 - Stress testing for margin shock and collateral haircut
 - Safe scratchpad calculations with local browser history
@@ -33,6 +33,8 @@ The URL will look like:
 ```text
 https://<your-github-username>.github.io/<repository-name>/
 ```
+
+If you want the cleanest naming, use a repository name like `peakcalcy`.
 
 ## Important hosting note
 
