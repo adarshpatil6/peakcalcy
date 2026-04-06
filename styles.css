@@ -47,8 +47,8 @@ select {
 }
 
 .page-shell {
-  width: min(1400px, calc(100vw - 32px));
-  margin: 24px auto 40px;
+  width: min(1220px, calc(100vw - 24px));
+  margin: 16px auto 32px;
 }
 
 .hero {
@@ -139,7 +139,7 @@ select {
 }
 
 .panel-grid-wide {
-  grid-template-columns: minmax(340px, 0.95fr) minmax(420px, 1.25fr);
+  grid-template-columns: minmax(0, 0.96fr) minmax(0, 1.04fr);
 }
 
 .panel {
@@ -148,6 +148,7 @@ select {
   border-radius: var(--radius-lg);
   padding: 22px;
   box-shadow: var(--shadow);
+  min-width: 0;
 }
 
 .scratchpad-panel {
@@ -192,7 +193,7 @@ input[type="file"] {
 }
 
 .large-textarea {
-  min-height: 340px;
+  min-height: clamp(240px, 32vw, 340px);
   resize: vertical;
   line-height: 1.55;
 }
@@ -271,7 +272,7 @@ input[type="range"] {
 
 .metric-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 12px;
 }
 
@@ -292,9 +293,10 @@ input[type="range"] {
 
 .metric-value {
   margin-top: 10px;
-  font-size: 1.55rem;
+  font-size: clamp(1.45rem, 2vw, 2.1rem);
   line-height: 1.2;
   font-weight: 800;
+  overflow-wrap: anywhere;
 }
 
 .metric-delta {
@@ -336,8 +338,9 @@ input[type="range"] {
 
 .status-value {
   margin-top: 8px;
-  font-size: 1.45rem;
+  font-size: clamp(1.35rem, 1.8vw, 1.95rem);
   font-weight: 800;
+  overflow-wrap: anywhere;
 }
 
 .status-copy {
@@ -351,6 +354,7 @@ input[type="range"] {
   font-family: Consolas, "Courier New", monospace;
   line-height: 1.7;
   white-space: pre-wrap;
+  overflow: auto;
 }
 
 .empty-state {
@@ -381,7 +385,7 @@ input[type="range"] {
 table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 540px;
+  min-width: 100%;
 }
 
 th,
@@ -417,6 +421,10 @@ tbody tr:last-child td {
   margin-top: 18px;
 }
 
+.sheet-toolbar > * {
+  flex: 1 1 180px;
+}
+
 .sheet-total {
   margin-top: 18px;
   border: 1px solid var(--line);
@@ -432,7 +440,7 @@ tbody tr:last-child td {
 }
 
 .sheet-table {
-  min-width: 760px;
+  min-width: 680px;
 }
 
 .sheet-input {
@@ -458,7 +466,8 @@ tbody tr:last-child td {
 .sheet-result {
   font-variant-numeric: tabular-nums;
   font-weight: 700;
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .sheet-result.error {
@@ -493,10 +502,6 @@ tbody tr:last-child td {
   .panel-grid-wide {
     grid-template-columns: 1fr;
   }
-
-  .metric-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
 }
 
 @media (max-width: 720px) {
@@ -510,10 +515,6 @@ tbody tr:last-child td {
     padding: 18px;
   }
 
-  .metric-grid {
-    grid-template-columns: 1fr;
-  }
-
   .tab-button,
   .primary-button,
   .ghost-button {
@@ -521,11 +522,21 @@ tbody tr:last-child td {
     justify-content: center;
   }
 
+  .checkbox-row {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .table-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
   .button-row > * {
     flex: 1 1 100%;
   }
 
-  table {
-    min-width: 480px;
+  .sheet-table {
+    min-width: 560px;
   }
 }

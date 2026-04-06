@@ -1,6 +1,9 @@
 const STORAGE_KEY = "peakcalcy-sheet-v1";
 
 const FUND_LABELS = {
+  available_margin: ["Available margin", "Available Margin", "Net available margin"],
+  used_margin: ["Used margin", "Used Margin", "Margin used"],
+  available_cash: ["Available cash", "Available Cash", "Cash available"],
   opening_balance: ["Opening balance", "Opening Balance"],
   collateral: ["Total collateral", "Collateral", "Available collateral"],
   span: ["SPAN", "Span"],
@@ -12,6 +15,9 @@ const FUND_LABELS = {
 };
 
 const FIELD_TITLES = {
+  available_margin: "Available Margin",
+  used_margin: "Used Margin",
+  available_cash: "Available Cash",
   opening_balance: "Opening Balance",
   collateral: "Collateral",
   span: "SPAN",
@@ -82,6 +88,11 @@ function formatPercent(value) {
 
 function normaliseAmount(rawValue) {
   return safeNumber(String(rawValue).replaceAll(",", "").trim());
+}
+
+
+function hasMatch(matchedLabel) {
+  return matchedLabel && matchedLabel !== "Not found";
 }
 
 
@@ -173,13 +184,20 @@ function renderStatusBox(container, kind, title, value, copyText) {
 
 function extractLabelValue(text, aliases) {
   for (const alias of aliases) {
-    const pattern = new RegExp(`${escapeRegex(alias)}\\s*(?:[:=\\-]|is)?\\s*(?:rs\\.?|inr)?\\s*([-+]?(?:\\d[\\d,]*)(?:\\.\\d+)?)`, "i");
-    const match = text.match(pattern);
-    if (match) {
-      return {
-        value: normaliseAmount(match[1]),
-        matchedLabel: alias,
-      };
+    const escapedAlias = escapeRegex(alias);
+    const patterns = [
+      new RegExp(`${escapedAlias}\\s*(?::|=|is)?\\s*(?:rs\\.?|inr)?\\s*([+-]?(?:\\d[\\d,]*)(?:\\.\\d+)?)`, "i"),
+      new RegExp(`${escapedAlias}\\s*(?:rs\\.?|inr)?\\s*\\n\\s*([+-]?(?:\\d[\\d,]*)(?:\\.\\d+)?)`, "i"),
+    ];
+
+    for (const pattern of patterns) {
+      const match = text.match(pattern);
+      if (match) {
+        return {
+          value: normaliseAmount(match[1]),
+          matchedLabel: alias,
+        };
+      }
     }
   }
   return { value: 0, matchedLabel: "Not found" };
@@ -196,14 +214,30 @@ function parseFundsSummary(text, ignoreOptionPremium, includeDeliveryMargin) {
     sources[fieldName] = result.matchedLabel;
   }
 
-  const cashAfterTransfers = inputs.opening_balance + inputs.payin - inputs.payout;
-  const totalAvailable = cashAfterTransfers + inputs.collateral;
+  const hasAvailableMargin = hasMatch(sources.available_margin);
+  const hasUsedMargin = hasMatch(sources.used_margin);
+  const hasAvailableCash = hasMatch(sources.available_cash);
+  const hasOpeningBalance = hasMatch(sources.opening_balance);
+
+  const baseCash = hasOpeningBalance
+    ? inputs.opening_balance
+    : hasAvailableCash
+      ? inputs.available_cash
+      : 0;
+  const cashAfterTransfers = baseCash + inputs.payin - inputs.payout;
   const optionComponent = ignoreOptionPremium ? 0 : Math.max(inputs.option_premium, 0);
   const deliveryComponent = includeDeliveryMargin ? inputs.delivery_margin : 0;
-  const totalRequired = inputs.span + inputs.exposure + optionComponent + deliveryComponent;
-  const netBuffer = totalAvailable - totalRequired;
-  const shortfall = netBuffer < 0 ? Math.abs(netBuffer) : 0;
-  const freeBuffer = Math.max(netBuffer, 0);
+  const componentRequired = inputs.span + inputs.exposure + optionComponent + deliveryComponent;
+  const directRequired = hasUsedMargin ? inputs.used_margin : 0;
+  const totalRequired = Math.max(componentRequired, directRequired);
+  const totalAvailable = hasAvailableMargin
+    ? inputs.available_margin + totalRequired
+    : cashAfterTransfers + inputs.collateral;
+  const netAvailable = hasAvailableMargin
+    ? inputs.available_margin
+    : totalAvailable - totalRequired;
+  const shortfall = netAvailable < 0 ? Math.abs(netAvailable) : 0;
+  const freeBuffer = Math.max(netAvailable, 0);
   const utilizationPct = totalAvailable > 0 ? (totalRequired / totalAvailable) * 100 : 0;
 
   const details = Object.entries(FIELD_TITLES).map(([key, label]) => ({
@@ -217,13 +251,18 @@ function parseFundsSummary(text, ignoreOptionPremium, includeDeliveryMargin) {
     details,
     cashAfterTransfers,
     totalAvailable,
+    netAvailable,
     totalRequired,
-    netBuffer,
+    netBuffer: netAvailable,
     shortfall,
     freeBuffer,
     utilizationPct,
     optionComponent,
     deliveryComponent,
+    componentRequired,
+    directRequired,
+    hasAvailableMargin,
+    hasUsedMargin,
   };
 }
 
@@ -240,15 +279,23 @@ function renderFundsOutput() {
   }
 
   const result = state.fundsResult;
-  const freePct = Math.max(100 - result.utilizationPct, 0);
+  const freePct = result.totalAvailable > 0 ? Math.max(100 - result.utilizationPct, 0) : 0;
 
   renderMetricCards(elements.fundsMetrics, [
-    { label: "Available", value: formatMoney(result.totalAvailable), delta: "Cash plus collateral" },
-    { label: "Required", value: formatMoney(result.totalRequired), delta: "SPAN plus exposure and optional burden" },
     {
-      label: result.shortfall > 0 ? "Shortfall" : "Buffer",
-      value: formatMoney(result.shortfall > 0 ? result.shortfall : result.freeBuffer),
-      delta: "Net available minus required",
+      label: "Available",
+      value: formatMoney(result.netAvailable),
+      delta: result.hasAvailableMargin ? "Direct available margin" : "Free amount after required usage",
+    },
+    {
+      label: "Required",
+      value: formatMoney(result.totalRequired),
+      delta: result.hasUsedMargin ? "Used margin or component burden" : "SPAN plus exposure and optional burden",
+    },
+    {
+      label: "Capacity",
+      value: formatMoney(result.totalAvailable),
+      delta: "Available plus required",
     },
     { label: "Utilization", value: formatPercent(result.utilizationPct), delta: `${freePct.toFixed(2)}% free headroom` },
   ]);
@@ -259,7 +306,7 @@ function renderFundsOutput() {
       "shortfall",
       "Shortfall",
       formatMoney(result.shortfall),
-      "Required usage is above the available amount in this snapshot."
+      "Net available margin is below zero in this snapshot."
     );
   } else {
     renderStatusBox(
@@ -267,23 +314,29 @@ function renderFundsOutput() {
       "safe",
       "Buffer",
       formatMoney(result.freeBuffer),
-      "Available funds are above the required amount in this snapshot."
+      "Net available margin is positive in this snapshot."
     );
   }
 
   elements.fundsProof.classList.remove("empty-state");
   elements.fundsProof.textContent = [
+    `NET AVAILABLE MARGIN    : ${formatMoney(result.netAvailable)}`,
+    `TOTAL USED MARGIN       : ${formatMoney(result.totalRequired)}`,
+    `TOTAL CAPACITY          : ${formatMoney(result.totalAvailable)}`,
+    "",
     `CASH AFTER PAYIN/PAYOUT : ${formatMoney(result.cashAfterTransfers)}`,
     `COLLATERAL              : ${formatMoney(result.inputs.collateral)}`,
-    `TOTAL AVAILABLE         : ${formatMoney(result.totalAvailable)}`,
+    `AVAILABLE CASH          : ${formatMoney(result.inputs.available_cash)}`,
+    `OPENING BALANCE         : ${formatMoney(result.inputs.opening_balance)}`,
     "",
     `SPAN                    : ${formatMoney(result.inputs.span)}`,
     `EXPOSURE                : ${formatMoney(result.inputs.exposure)}`,
     `OPTION PREMIUM USED     : ${formatMoney(result.optionComponent)}`,
     `DELIVERY MARGIN USED    : ${formatMoney(result.deliveryComponent)}`,
-    `TOTAL REQUIRED          : ${formatMoney(result.totalRequired)}`,
+    `COMPONENT REQUIRED      : ${formatMoney(result.componentRequired)}`,
+    `DIRECT USED MARGIN      : ${formatMoney(result.directRequired)}`,
     "",
-    `NET BUFFER              : ${formatMoney(result.netBuffer)}`,
+    `NET BUFFER              : ${formatMoney(result.netAvailable)}`,
     `UTILIZATION             : ${formatPercent(result.utilizationPct)}`,
   ].join("\n");
 
