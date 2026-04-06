@@ -6,7 +6,7 @@
     <title>PeakCalcy</title>
     <meta
       name="description"
-      content="PeakCalcy is an offline calculator and margin workspace for funds parsing, liquidation estimation, stress testing, and desk calculations."
+      content="PeakCalcy is an offline calculator for funds parsing, liquidation estimation, stress testing, and simple desk calculations."
     >
     <link rel="stylesheet" href="styles.css">
   </head>
@@ -14,38 +14,16 @@
     <div class="page-shell">
       <header class="hero">
         <div class="hero-copy">
-          <p class="eyebrow">Static project page</p>
           <h1>PeakCalcy</h1>
           <p class="hero-text">
-            A simple offline calculator for daily desk operations. Paste a Funds tab summary, estimate
-            liquidation impact from CSV uploads, run stress scenarios, and keep quick calculations in
-            a browser-only scratchpad.
+            A simple offline calculator for funds, liquidation checks, stress testing, and quick desk math.
           </p>
-          <div class="hero-pills">
-            <span>GitHub Pages ready</span>
-            <span>No backend</span>
-            <span>No API keys</span>
-          </div>
         </div>
-        <aside class="hero-side">
-          <div class="hero-stat">
-            <span class="hero-stat-label">Hosting</span>
-            <strong class="hero-stat-value">Static HTML, CSS, JS</strong>
-          </div>
-          <div class="hero-stat">
-            <span class="hero-stat-label">Best for</span>
-            <strong class="hero-stat-value">Desk checks and quick math</strong>
-          </div>
-          <div class="hero-stat">
-            <span class="hero-stat-label">Persistence</span>
-            <strong class="hero-stat-value">Browser local storage</strong>
-          </div>
-        </aside>
       </header>
 
       <section class="toolbar">
         <div class="tablist" role="tablist" aria-label="PeakCalcy sections">
-          <button class="tab-button active" data-tab-target="funds" role="tab" aria-selected="true">Funds and Margin</button>
+          <button class="tab-button active" data-tab-target="funds" role="tab" aria-selected="true">Funds and Calcy</button>
           <button class="tab-button" data-tab-target="liquidation" role="tab" aria-selected="false">Liquidation</button>
           <button class="tab-button" data-tab-target="stress" role="tab" aria-selected="false">Stress Test</button>
           <button class="tab-button" data-tab-target="scratchpad" role="tab" aria-selected="false">Scratchpad</button>
@@ -88,8 +66,8 @@
 
             <section class="panel">
               <div class="section-heading">
-                <h2>Margin Snapshot</h2>
-                <p>Margin availability, required margin, shortfall or buffer, and utilization.</p>
+                <h2>Calcy Snapshot</h2>
+                <p>Available funds, required usage, shortfall or buffer, and utilization.</p>
               </div>
 
               <div id="funds-metrics" class="metric-grid"></div>
