@@ -703,7 +703,7 @@
                 <article class="metric-card">
                   <div class="metric-label">Required Margin</div>
                   <div id="requiredValue" class="metric-value">Rs. 0.00</div>
-                  <div id="requiredSubtext" class="metric-subtext">SPAN + Exposure + optional burdens</div>
+                  <div id="requiredSubtext" class="metric-subtext">SPAN + Exposure + Option Premium + optional Delivery.</div>
                 </article>
 
                 <article class="metric-card">
@@ -715,7 +715,7 @@
                 <article class="metric-card">
                   <div class="metric-label">Margin Used %</div>
                   <div id="usedPctValue" class="metric-value">0.00%</div>
-                  <div id="usedPctSubtext" class="metric-subtext">Based on total equity</div>
+                  <div id="usedPctSubtext" class="metric-subtext">Based on total available funds</div>
                 </article>
               </div>
 
@@ -1061,7 +1061,6 @@
         function parseFundsSummary(text, includeDelivery, ignoreOptionPremium) {
           const extracted = {};
           const matches = {};
-          const hasValue = (field) => matches[field] && matches[field] !== "Not found";
 
           Object.entries(FUND_LABELS).forEach(([field, aliases]) => {
             const result = extractLabelValue(text, aliases);
@@ -1069,77 +1068,63 @@
             matches[field] = result.matchedLabel;
           });
 
-          const optionPremiumUsed = ignoreOptionPremium ? 0 : Math.max(extracted.option_premium, 0);
-          const deliveryMarginUsed = includeDelivery ? Math.max(extracted.delivery_margin, 0) : 0;
-          const computedRequired = extracted.span + extracted.exposure + optionPremiumUsed + deliveryMarginUsed;
-          const directRequired = hasValue("used_margin") ? Math.max(extracted.used_margin, 0) : 0;
-          const hasComputedComponents = hasValue("span") || hasValue("exposure") || hasValue("option_premium") || hasValue("delivery_margin");
-          const requiredMargin = hasComputedComponents ? computedRequired : directRequired;
-
-          const computedEquity = extracted.opening_balance + extracted.total_collateral + extracted.payin - extracted.payout;
-          const brokerTotalEquity = hasValue("available_margin")
-            ? extracted.available_margin + requiredMargin
-            : computedEquity;
-          const totalEquity = hasValue("available_margin") ? brokerTotalEquity : computedEquity;
-          const derivedAvailable = computedEquity - requiredMargin;
-          const brokerAvailable = hasValue("available_margin") ? extracted.available_margin : derivedAvailable;
-          const netAvailable = brokerAvailable;
-          const marginUsedPct = totalEquity > 0 ? (requiredMargin / totalEquity) * 100 : 0;
-          const reconciliationGap = brokerAvailable - derivedAvailable;
+          const totalAvailableCashSide = extracted.opening_balance + extracted.payin - extracted.payout;
+          const totalAvailable = totalAvailableCashSide + extracted.total_collateral;
+          const optionPremiumUsed = ignoreOptionPremium ? 0 : (extracted.option_premium > 0 ? extracted.option_premium : 0);
+          const deliveryMarginUsed = includeDelivery ? extracted.delivery_margin : 0;
+          const requiredMargin = extracted.span + extracted.exposure + optionPremiumUsed + deliveryMarginUsed;
+          const finalResult = totalAvailable - requiredMargin;
+          const shortfall = finalResult < 0 ? Math.abs(finalResult) : 0;
+          const surplus = finalResult > 0 ? finalResult : 0;
+          const marginUsedPct = totalAvailable > 0 ? (requiredMargin / totalAvailable) * 100 : 100;
 
           return {
             extracted,
             matches,
-            derivedTotalEquity: computedEquity,
-            totalEquity,
-            brokerTotalEquity,
-            brokerAvailable,
-            derivedAvailable,
-            netAvailable,
+            totalAvailableCashSide,
+            totalAvailable,
             requiredMargin,
             optionPremiumUsed,
             deliveryMarginUsed,
-            computedRequired,
-            directRequired,
+            finalResult,
+            shortfall,
+            surplus,
             marginUsedPct,
-            reconciliationGap,
           };
         }
 
         function renderMetrics(result) {
-          const available = result.netAvailable >= 0;
+          const available = result.finalResult >= 0;
           elements.statusCard.className = `metric-card ${available ? "status-available" : "status-shortfall"}`;
-          elements.statusValue.textContent = `${available ? "Available" : "Shortfall"} ${formatMoney(Math.abs(result.netAvailable))}`;
+          elements.statusValue.textContent = `${available ? "Available" : "Shortfall"} ${formatMoney(available ? result.surplus : result.shortfall)}`;
           elements.statusSubtext.textContent = available
-            ? "Free buffer available after margin usage."
-            : "Additional funds required to cover margin.";
+            ? "Surplus margin available after peak requirement."
+            : "Additional funds required to cover peak requirement.";
           elements.requiredValue.textContent = formatMoney(result.requiredMargin);
-          elements.requiredSubtext.textContent = result.matches.used_margin !== "Not found" && Math.abs(result.directRequired - result.computedRequired) <= 1
-            ? "Matches SPAN, Exposure, Option Premium, and Delivery."
-            : "Computed from SPAN, Exposure, Option Premium, and Delivery.";
-          elements.deliveryValue.textContent = formatMoney(result.extracted.delivery_margin);
+          elements.requiredSubtext.textContent = "SPAN + Exposure + Option Premium + optional Delivery.";
+          elements.deliveryValue.textContent = formatMoney(result.deliveryMarginUsed);
           elements.deliverySubtext.textContent = result.deliveryMarginUsed > 0
             ? "Included in requirement."
             : "Excluded from requirement.";
           elements.usedPctValue.textContent = formatPercent(result.marginUsedPct);
-          elements.usedPctSubtext.textContent = `${formatMoney(result.totalEquity)} total equity base`;
+          elements.usedPctSubtext.textContent = `${formatMoney(result.totalAvailable)} total available base`;
           elements.mathProof.textContent = [
             `OPENING BALANCE      : ${formatMoney(result.extracted.opening_balance)}`,
-            `TOTAL COLLATERAL     : ${formatMoney(result.extracted.total_collateral)}`,
             `PAYIN                : ${formatMoney(result.extracted.payin)}`,
             `PAYOUT               : ${formatMoney(result.extracted.payout)}`,
+            `NET CASH SIDE        : ${formatMoney(result.totalAvailableCashSide)}`,
+            `TOTAL COLLATERAL     : ${formatMoney(result.extracted.total_collateral)}`,
+            `TOTAL AVAILABLE      : ${formatMoney(result.totalAvailable)}`,
+            "",
+            `SPAN                 : ${formatMoney(result.extracted.span)}`,
+            `EXPOSURE             : ${formatMoney(result.extracted.exposure)}`,
             `OPTION PREMIUM USED  : ${formatMoney(result.optionPremiumUsed)}`,
             `DELIVERY MARGIN USED : ${formatMoney(result.deliveryMarginUsed)}`,
             "",
-            `DERIVED TOTAL EQUITY : ${formatMoney(result.derivedTotalEquity)}`,
-            `COMPUTED REQUIRED    : ${formatMoney(result.computedRequired)}`,
-            `DIRECT USED MARGIN   : ${formatMoney(result.directRequired)}`,
             `FINAL REQUIRED       : ${formatMoney(result.requiredMargin)}`,
-            `DERIVED AVAILABLE    : ${formatMoney(result.derivedAvailable)}`,
-            `BROKER AVAILABLE     : ${formatMoney(result.brokerAvailable)}`,
-            `BROKER TOTAL EQUITY  : ${formatMoney(result.brokerTotalEquity)}`,
-            `RECONCILIATION GAP   : ${formatMoney(result.reconciliationGap)}`,
-            `NET AVAILABLE        : ${formatMoney(result.netAvailable)}`,
+            `NET RESULT           : ${formatMoney(result.finalResult)}`,
+            `SHORTFALL            : ${formatMoney(result.shortfall)}`,
+            `SURPLUS              : ${formatMoney(result.surplus)}`,
             `MARGIN USED %        : ${formatPercent(result.marginUsedPct)}`,
           ].join("\n");
         }
@@ -1149,11 +1134,11 @@
           elements.statusValue.textContent = "Waiting";
           elements.statusSubtext.textContent = "Paste the funds summary and calculate.";
           elements.requiredValue.textContent = "Rs. 0.00";
-          elements.requiredSubtext.textContent = "SPAN + Exposure + optional burdens";
+          elements.requiredSubtext.textContent = "SPAN + Exposure + Option Premium + optional Delivery.";
           elements.deliveryValue.textContent = "Rs. 0.00";
           elements.deliverySubtext.textContent = "Currently excluded";
           elements.usedPctValue.textContent = "0.00%";
-          elements.usedPctSubtext.textContent = "Based on total equity";
+          elements.usedPctSubtext.textContent = "Based on total available funds";
           elements.mathProof.textContent = "Paste the funds text on the left and click Calculate.";
         }
 
