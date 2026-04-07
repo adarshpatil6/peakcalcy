@@ -180,21 +180,40 @@
       }
 
       .market-widget-slot {
-        display: block;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
         width: 100%;
-        height: 148px;
+        min-height: 148px;
         margin-top: 12px;
         border-radius: 14px;
-        overflow: hidden;
+        padding: 14px 16px;
         background: var(--panel-soft);
       }
 
-      .market-widget-slot iframe,
-      .market-widget-slot .tradingview-widget-container,
-      .market-widget-slot .tradingview-widget-container__widget {
-        display: block;
-        width: 100%;
-        height: 100%;
+      .market-value {
+        font-size: clamp(1.55rem, 2.2vw, 2.2rem);
+        font-weight: 700;
+        line-height: 1.05;
+        font-variant-numeric: tabular-nums;
+        word-break: break-word;
+      }
+
+      .market-change {
+        margin-top: 10px;
+        font-size: 1rem;
+        font-weight: 700;
+      }
+
+      .market-change.up { color: var(--good); }
+      .market-change.down { color: var(--accent); }
+      .market-change.flat { color: var(--muted); }
+
+      .market-meta {
+        margin-top: 8px;
+        color: var(--muted);
+        font-size: 0.86rem;
+        line-height: 1.45;
       }
 
       .market-widget-placeholder {
@@ -704,7 +723,7 @@
         .header-row, .section-header { flex-direction: column; }
         .header-actions { width: 100%; }
         .market-strip, .metric-grid, .scratchpad-toolbar, .shortcut-grid { grid-template-columns: 1fr; }
-        .market-widget-slot { height: 132px; }
+        .market-widget-slot { min-height: 132px; }
         .section-actions {
           width: 100%;
           justify-content: flex-start;
@@ -837,7 +856,6 @@
                 <div class="section-actions">
                   <div class="quick-actions" aria-label="Funds actions">
                     <button id="pasteClipboardButton" class="quick-chip" type="button">Paste from Clipboard</button>
-                    <button id="sampleDataButton" class="quick-chip" type="button">Sample Data</button>
                     <button id="clearAllButton" class="quick-chip" type="button">Clear All</button>
                   </div>
                 </div>
@@ -1012,28 +1030,13 @@
         };
 
         const MARKETS = [
-          { key: "NSEI", tvSymbol: "NSE:NIFTY" },
-          { key: "NSEBANK", tvSymbol: "NSE:BANKNIFTY" },
-          { key: "BSESN", tvSymbol: "BSE:SENSEX" },
+          { key: "NSEI", apiName: "Nifty50", exchange: "NSE", displayName: "NIFTY", symbolLabel: "NSE:NIFTY" },
+          { key: "NSEBANK", apiName: "BankNifty", exchange: "NSE", displayName: "BANK NIFTY", symbolLabel: "NSE:BANKNIFTY" },
+          { key: "BSESN", apiName: "Sensex", exchange: "BSE", displayName: "SENSEX", symbolLabel: "BSE:SENSEX" },
         ];
-        const MARKET_WIDGET_SCRIPT_SRC = "https://s3.tradingview.com/external-embedding/embed-widget-symbol-info.js";
+        const MARKET_INDICES_ENDPOINT = "https://connects.torusdigital.com/api/v1/indices";
+        const MARKET_AUTO_REFRESH_MS = 300000;
         const STORAGE_KEY = "calculator-dashboard-state-v1";
-        const SAMPLE_FUNDS_TEXT = `Available margin
-89,29,632.58
-Used margin
-28,89,66,004.62
-Available cash
-89,19,359.87
-Opening balance 12,89,65,405.50
-Payin 2,00,00,000.00
-Payout 0.00
-SPAN 21,51,01,391.00
-Delivery margin 0.00
-Exposure 8,27,38,526.97
-Options premium -88,73,913.36
-Collateral (Liquid funds) 0.00
-Collateral (Equity) 14,89,30,231.70
-Total collateral 14,89,30,231.70`;
 
         let scratchpadEntries = [];
         let currentProofRows = [];
@@ -1050,7 +1053,6 @@ Total collateral 14,89,30,231.70`;
           closeShortcutsButton: document.getElementById("closeShortcutsButton"),
           fundsInput: document.getElementById("fundsInput"),
           pasteClipboardButton: document.getElementById("pasteClipboardButton"),
-          sampleDataButton: document.getElementById("sampleDataButton"),
           clearAllButton: document.getElementById("clearAllButton"),
           includeDeliveryMargin: document.getElementById("includeDeliveryMargin"),
           ignoreOptionPremium: document.getElementById("ignoreOptionPremium"),
@@ -1194,7 +1196,7 @@ Total collateral 14,89,30,231.70`;
             scratchpadEntries = Array.isArray(state.scratchpadEntries) ? state.scratchpadEntries : [];
             elements.scratchpadLabelInput.value = state.scratchpadLabelInput || "";
             elements.scratchpadInput.value = state.scratchpadInput || "";
-            applyTheme(Boolean(state.darkMode), false);
+            applyTheme(Boolean(state.darkMode));
             applyPinnedQuotes(Boolean(state.pinQuotes));
             applyProofCollapsed(Boolean(state.proofCollapsed), false);
           } catch (error) {
@@ -1218,14 +1220,11 @@ Total collateral 14,89,30,231.70`;
           renderScratchpad();
         }
 
-        function applyTheme(enabled, shouldRefreshMarkets = true) {
+        function applyTheme(enabled) {
           document.body.classList.toggle("theme-dark", enabled);
           elements.darkModeToggle.classList.toggle("active", enabled);
           elements.darkModeToggle.setAttribute("aria-pressed", enabled ? "true" : "false");
           persistState();
-          if (shouldRefreshMarkets) {
-            refreshMarkets(true);
-          }
         }
 
         function applyPinnedQuotes(enabled) {
@@ -1290,11 +1289,6 @@ Total collateral 14,89,30,231.70`;
           } catch (error) {
             alert("Could not read clipboard text.");
           }
-        }
-
-        function applySampleData() {
-          applyFundsText(SAMPLE_FUNDS_TEXT, true);
-          elements.fundsInput.focus();
         }
 
         function escapeAttribute(value) {
@@ -1525,37 +1519,49 @@ Total collateral 14,89,30,231.70`;
           target.host.innerHTML = `<div class="market-widget-placeholder">${escapeHtml(message)}</div>`;
         }
 
-        function createMarketWidget(symbol) {
-          const wrapper = document.createElement("div");
-          wrapper.className = "tradingview-widget-container";
-
-          const inner = document.createElement("div");
-          inner.className = "tradingview-widget-container__widget";
-          wrapper.appendChild(inner);
-
-          const script = document.createElement("script");
-          script.type = "text/javascript";
-          script.src = MARKET_WIDGET_SCRIPT_SRC;
-          script.async = true;
-          script.textContent = JSON.stringify({
-            symbol,
-            width: "100%",
-            locale: "en",
-            colorTheme: document.body.classList.contains("theme-dark") ? "dark" : "light",
-            isTransparent: true,
+        function renderMarketSuccess(key, market) {
+          const target = elements.markets[key];
+          const price = safeNumber(market.price);
+          const change = safeNumber(market.priceChange);
+          const changePercent = safeNumber(market.changePercent) * 100;
+          const changeClass = change > 0 ? "up" : change < 0 ? "down" : "flat";
+          const lastUpdated = new Date().toLocaleTimeString("en-IN", {
+            hour: "2-digit",
+            minute: "2-digit",
           });
 
-          wrapper.appendChild(script);
-          return wrapper;
+          target.card.classList.remove("loading");
+          target.host.innerHTML = `
+            <div class="market-value">${escapeHtml(price.toLocaleString("en-IN", { maximumFractionDigits: 2, minimumFractionDigits: 2 }))}</div>
+            <div class="market-change ${changeClass}">${escapeHtml(formatSignedNumber(change))} (${escapeHtml(formatSignedNumber(changePercent))}%)</div>
+            <div class="market-meta">${escapeHtml(`${market.exchange} • Torus Digital • ${lastUpdated}`)}</div>
+          `;
         }
 
-        function mountMarketWidgets() {
-          MARKETS.forEach((market) => {
-            const target = elements.markets[market.key];
-            target.host.innerHTML = "";
-            target.host.appendChild(createMarketWidget(market.tvSymbol));
-            target.card.classList.remove("loading");
-          });
+        async function fetchMarketIndices() {
+          const controller = new AbortController();
+          const timer = window.setTimeout(() => controller.abort(), 7000);
+          try {
+            const response = await fetch(MARKET_INDICES_ENDPOINT, {
+              method: "GET",
+              headers: {
+                Accept: "application/json",
+                "Content-Type": "application/json",
+              },
+              cache: "no-store",
+              signal: controller.signal,
+            });
+            if (!response.ok) {
+              throw new Error(`HTTP ${response.status}`);
+            }
+            const payload = await response.json();
+            if (!Array.isArray(payload)) {
+              throw new Error("Unexpected market payload");
+            }
+            return payload;
+          } finally {
+            window.clearTimeout(timer);
+          }
         }
 
         async function refreshMarkets(force = false) {
@@ -1567,10 +1573,18 @@ Total collateral 14,89,30,231.70`;
           MARKETS.forEach((market) => setMarketLoading(market.key));
 
           try {
-            mountMarketWidgets();
+            const indices = await fetchMarketIndices();
+            MARKETS.forEach((marketConfig) => {
+              const matched = indices.find((item) => item && item.name === marketConfig.apiName && item.exchange === marketConfig.exchange);
+              if (matched) {
+                renderMarketSuccess(marketConfig.key, matched);
+              } else {
+                renderMarketError(marketConfig.key, `${marketConfig.displayName} quote unavailable.`);
+              }
+            });
           } catch (error) {
             MARKETS.forEach((market) => {
-              renderMarketError(market.key, "Live widget unavailable right now.");
+              renderMarketError(market.key, "LTP unavailable right now.");
             });
           } finally {
             marketRefreshInFlight = false;
@@ -1919,7 +1933,6 @@ Total collateral 14,89,30,231.70`;
         elements.calculateButton.addEventListener("click", () => calculateRms(true));
         elements.clearButton.addEventListener("click", clearRms);
         elements.pasteClipboardButton.addEventListener("click", pasteFromClipboard);
-        elements.sampleDataButton.addEventListener("click", applySampleData);
         elements.clearAllButton.addEventListener("click", clearAllInputs);
         elements.toggleProofButton.addEventListener("click", () => applyProofCollapsed(!elements.proofContent.hidden));
         elements.exportProofButton.addEventListener("click", exportProofCsv);
@@ -2058,6 +2071,7 @@ Total collateral 14,89,30,231.70`;
         }
         tryAutoPaste();
         refreshMarkets();
+        window.setInterval(refreshMarkets, MARKET_AUTO_REFRESH_MS);
       })();
     </script>
   </body>
