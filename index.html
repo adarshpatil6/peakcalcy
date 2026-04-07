@@ -215,6 +215,11 @@
         font-weight: 700;
       }
 
+      .quick-chip:disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
+      }
+
       .quick-chip:hover, .quick-chip:focus-visible {
         border-color: rgba(255, 75, 75, 0.35);
         color: var(--accent);
@@ -398,6 +403,22 @@
         font-weight: 700;
         font-variant-numeric: tabular-nums;
         white-space: nowrap;
+      }
+
+      .proof-value-btn {
+        border: 0;
+        background: transparent;
+        color: inherit;
+        padding: 0;
+        font: inherit;
+        font-weight: inherit;
+        cursor: pointer;
+      }
+
+      .proof-value-btn:hover,
+      .proof-value-btn:focus-visible {
+        color: var(--accent);
+        outline: none;
       }
 
       .proof-value.negative { color: var(--accent); }
@@ -781,7 +802,11 @@
                 <div class="section-actions">
                   <div class="quick-actions" aria-label="Funds actions">
                     <button id="pasteClipboardButton" class="quick-chip" type="button">Paste from Clipboard</button>
+                    <button id="cleanupPasteButton" class="quick-chip" type="button">Cleanup Paste</button>
                     <button id="clearAllButton" class="quick-chip" type="button">Clear All</button>
+                    <button id="copySummaryButton" class="quick-chip" type="button" disabled>Copy Summary</button>
+                    <button id="copyRequiredButton" class="quick-chip" type="button" disabled>Copy Required</button>
+                    <button id="copyShortfallButton" class="quick-chip" type="button" disabled>Copy Shortfall</button>
                   </div>
                 </div>
               </div>
@@ -953,9 +978,11 @@
         };
 
         const STORAGE_KEY = "calculator-dashboard-state-v1";
+        const CLEANUP_ALIASES = Object.values(FUND_LABELS).flat().sort((left, right) => right.length - left.length);
 
         let scratchpadEntries = [];
         let currentProofRows = [];
+        let currentRmsResult = null;
         let autoCalculateTimer = 0;
         const scratchpadHistory = [];
 
@@ -966,7 +993,11 @@
           closeShortcutsButton: document.getElementById("closeShortcutsButton"),
           fundsInput: document.getElementById("fundsInput"),
           pasteClipboardButton: document.getElementById("pasteClipboardButton"),
+          cleanupPasteButton: document.getElementById("cleanupPasteButton"),
           clearAllButton: document.getElementById("clearAllButton"),
+          copySummaryButton: document.getElementById("copySummaryButton"),
+          copyRequiredButton: document.getElementById("copyRequiredButton"),
+          copyShortfallButton: document.getElementById("copyShortfallButton"),
           includeDeliveryMargin: document.getElementById("includeDeliveryMargin"),
           ignoreOptionPremium: document.getElementById("ignoreOptionPremium"),
           calculateButton: document.getElementById("calculateButton"),
@@ -1214,6 +1245,149 @@
           renderScratchpad();
         }
 
+        function flashButtonText(button, nextText, delayMs = 950) {
+          const originalText = button.textContent;
+          button.textContent = nextText;
+          window.setTimeout(() => {
+            button.textContent = originalText;
+          }, delayMs);
+        }
+
+        function looksLikeStandaloneAmount(line) {
+          return /^(?:(?:rs\.?|inr)\s*)?[+-]?\d[\d,]*(?:\.\d+)?$/i.test(String(line || "").trim());
+        }
+
+        function extractAmountText(line) {
+          const match = String(line || "").match(/(?:(?:rs\.?|inr)\s*)?[+-]?\d[\d,]*(?:\.\d+)?/i);
+          return match ? match[0].replace(/\s+/g, " ").trim() : "";
+        }
+
+        function matchCleanupAlias(line) {
+          const trimmed = String(line || "").trim();
+          for (const alias of CLEANUP_ALIASES) {
+            const escaped = escapeRegex(alias);
+            const patterns = [
+              new RegExp(`^${escaped}\\s*$`, "i"),
+              new RegExp(`^${escaped}\\s*(?::|=|-)?\\s*(?:(?:rs\\.?|inr)\\s*)?[+-]?\\d[\\d,]*(?:\\.\\d+)?\\s*$`, "i"),
+            ];
+            if (patterns.some((pattern) => pattern.test(trimmed))) {
+              return alias;
+            }
+          }
+          return "";
+        }
+
+        function cleanupFundsText(rawText) {
+          const lines = String(rawText || "")
+            .replace(/\r\n?/g, "\n")
+            .replace(/\u00A0/g, " ")
+            .split("\n")
+            .map((line) => line.replace(/\t+/g, " ").replace(/\s+/g, " ").trim())
+            .filter(Boolean);
+
+          const cleaned = [];
+          const seen = new Set();
+
+          for (let index = 0; index < lines.length; index += 1) {
+            let line = lines[index];
+            const alias = matchCleanupAlias(line);
+            const nextLine = lines[index + 1] || "";
+
+            if (alias) {
+              const inlineAmount = extractAmountText(line);
+              if (inlineAmount && !new RegExp(`^${escapeRegex(alias)}\\s*$`, "i").test(line)) {
+                line = `${alias}: ${inlineAmount}`;
+              } else if (looksLikeStandaloneAmount(nextLine)) {
+                line = `${alias}: ${extractAmountText(nextLine)}`;
+                index += 1;
+              } else {
+                line = alias;
+              }
+            }
+
+            const lowered = line.toLowerCase();
+            if (!seen.has(lowered)) {
+              cleaned.push(line);
+              seen.add(lowered);
+            }
+          }
+
+          return cleaned.join("\n");
+        }
+
+        async function cleanupFundsInput() {
+          let sourceText = elements.fundsInput.value.trim();
+
+          if (!sourceText && window.isSecureContext && navigator.clipboard && navigator.clipboard.readText) {
+            try {
+              sourceText = await navigator.clipboard.readText();
+            } catch (error) {
+              sourceText = "";
+            }
+          }
+
+          if (!sourceText.trim()) {
+            alert("Paste the Funds tab summary first, then use Cleanup Paste.");
+            elements.fundsInput.focus();
+            return;
+          }
+
+          const cleaned = cleanupFundsText(sourceText);
+          if (!cleaned.trim()) {
+            alert("Nothing useful was found to clean.");
+            elements.fundsInput.focus();
+            return;
+          }
+
+          applyFundsText(cleaned, true);
+          flashButtonText(elements.cleanupPasteButton, "Cleaned");
+          elements.fundsInput.focus();
+        }
+
+        function buildResultSummary(result) {
+          if (!result) {
+            return "";
+          }
+
+          const statusPart = result.shortfall > 0
+            ? `Shortfall ${formatSignedMoney(-result.shortfall)}`
+            : `Available ${formatMoney(result.surplus)}`;
+
+          return [
+            statusPart,
+            `Total Available ${formatMoney(result.totalAvailable)}`,
+            `Required ${formatMoney(result.requiredMargin)}`,
+            `Delivery ${formatMoney(result.deliveryMarginUsed)}`,
+            `Used ${formatPercent(result.marginUsedPct)}`,
+          ].join(" | ");
+        }
+
+        function updateResultQuickActions(result) {
+          const hasResult = Boolean(result);
+          elements.copySummaryButton.disabled = !hasResult;
+          elements.copyRequiredButton.disabled = !hasResult;
+          elements.copyShortfallButton.disabled = !hasResult || result.shortfall <= 0;
+        }
+
+        async function copyResultSnippet(button, text) {
+          try {
+            const copied = await copyText(text);
+            flashButtonText(button, copied ? "Copied" : "Failed");
+          } catch (error) {
+            flashButtonText(button, "Failed");
+          }
+        }
+
+        function sendProofValueToScratchpad(row) {
+          pushScratchpadHistory();
+          scratchpadEntries.unshift(createScratchpadEntry(
+            formatFormulaNumber(row.value),
+            undefined,
+            row.label
+          ));
+          renderScratchpad();
+        }
+
         function applyTheme(enabled) {
           document.body.classList.toggle("theme-dark", enabled);
           elements.darkModeToggle.classList.toggle("active", enabled);
@@ -1406,15 +1580,23 @@
         function renderMathProof(result) {
           currentProofRows = buildMathProofRows(result);
           let currentSection = "";
-          elements.mathProofBody.innerHTML = currentProofRows.map((row) => {
+          elements.mathProofBody.innerHTML = currentProofRows.map((row, rowIndex) => {
             const sectionHeader = row.section !== currentSection
               ? `<tr class="proof-group-row"><th colspan="2">${escapeHtml(row.section)}</th></tr>`
               : "";
             currentSection = row.section;
             const toneClass = row.tone ? ` ${row.tone}` : "";
-            return `${sectionHeader}<tr><td>${escapeHtml(row.label)}</td><td class="proof-value${toneClass}">${escapeHtml(formatProofValue(row))}</td></tr>`;
+            return `${sectionHeader}<tr><td>${escapeHtml(row.label)}</td><td class="proof-value${toneClass}"><button class="proof-value-btn" type="button" data-proof-index="${rowIndex}" title="Send this value to the scratchpad">${escapeHtml(formatProofValue(row))}</button></td></tr>`;
           }).join("");
           elements.exportProofButton.disabled = currentProofRows.length === 0;
+          elements.mathProofBody.querySelectorAll("[data-proof-index]").forEach((button) => {
+            button.addEventListener("click", () => {
+              const row = currentProofRows[Number(button.dataset.proofIndex)];
+              if (row) {
+                sendProofValueToScratchpad(row);
+              }
+            });
+          });
         }
 
         function resetMathProof() {
@@ -1424,6 +1606,7 @@
         }
 
         function renderMetrics(result) {
+          currentRmsResult = result;
           const available = result.finalResult >= 0;
           elements.statusCard.className = `metric-card ${available ? "status-available" : "status-shortfall"}`;
           elements.statusValue.textContent = available
@@ -1440,10 +1623,12 @@
             : "Excluded from requirement.";
           elements.usedPctValue.textContent = formatPercent(result.marginUsedPct);
           elements.usedPctSubtext.textContent = `${formatMoney(result.totalAvailable)} total available base`;
+          updateResultQuickActions(result);
           renderMathProof(result);
         }
 
         function resetMetrics() {
+          currentRmsResult = null;
           elements.statusCard.className = "metric-card";
           elements.statusValue.textContent = "Waiting";
           elements.statusSubtext.textContent = "Paste the funds summary and calculate.";
@@ -1453,6 +1638,7 @@
           elements.deliverySubtext.textContent = "Currently excluded";
           elements.usedPctValue.textContent = "0.00%";
           elements.usedPctSubtext.textContent = "Based on total available funds";
+          updateResultQuickActions(null);
           resetMathProof();
         }
 
@@ -1927,7 +2113,26 @@
         elements.calculateButton.addEventListener("click", () => calculateRms(true));
         elements.clearButton.addEventListener("click", clearRms);
         elements.pasteClipboardButton.addEventListener("click", pasteFromClipboard);
+        elements.cleanupPasteButton.addEventListener("click", cleanupFundsInput);
         elements.clearAllButton.addEventListener("click", clearAllInputs);
+        elements.copySummaryButton.addEventListener("click", () => {
+          if (!currentRmsResult) {
+            return;
+          }
+          copyResultSnippet(elements.copySummaryButton, buildResultSummary(currentRmsResult));
+        });
+        elements.copyRequiredButton.addEventListener("click", () => {
+          if (!currentRmsResult) {
+            return;
+          }
+          copyResultSnippet(elements.copyRequiredButton, `Required Margin ${formatMoney(currentRmsResult.requiredMargin)}`);
+        });
+        elements.copyShortfallButton.addEventListener("click", () => {
+          if (!currentRmsResult || currentRmsResult.shortfall <= 0) {
+            return;
+          }
+          copyResultSnippet(elements.copyShortfallButton, `Shortfall ${formatSignedMoney(-currentRmsResult.shortfall)}`);
+        });
         elements.toggleProofButton.addEventListener("click", () => applyProofCollapsed(!elements.proofContent.hidden));
         elements.exportProofButton.addEventListener("click", exportProofCsv);
         elements.exportScratchpadButton.addEventListener("click", exportScratchpadCsv);
