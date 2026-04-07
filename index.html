@@ -1035,6 +1035,12 @@
           { key: "BSESN", apiName: "Sensex", exchange: "BSE", displayName: "SENSEX", symbolLabel: "BSE:SENSEX" },
         ];
         const MARKET_INDICES_ENDPOINT = "https://connects.torusdigital.com/api/v1/indices";
+        const MARKET_INDICES_FALLBACKS = [
+          { type: "direct", url: MARKET_INDICES_ENDPOINT },
+          { type: "direct", url: `https://api.allorigins.win/raw?url=${encodeURIComponent(MARKET_INDICES_ENDPOINT)}` },
+          { type: "direct", url: `https://corsproxy.io/?${encodeURIComponent(MARKET_INDICES_ENDPOINT)}` },
+          { type: "wrapped", url: `https://whateverorigin.org/get?url=${encodeURIComponent(MARKET_INDICES_ENDPOINT)}` },
+        ];
         const MARKET_AUTO_REFRESH_MS = 300000;
         const STORAGE_KEY = "calculator-dashboard-state-v1";
 
@@ -1507,13 +1513,13 @@
           renderScratchpad();
         }
 
-        function setMarketLoading(key, message = "Loading live widget...") {
+        function setMarketLoading(key, message = "Loading LTP...") {
           const target = elements.markets[key];
           target.card.classList.add("loading");
           target.host.innerHTML = `<div class="market-widget-placeholder">${escapeHtml(message)}</div>`;
         }
 
-        function renderMarketError(key, message = "Live quote widget unavailable.") {
+        function renderMarketError(key, message = "LTP unavailable right now.") {
           const target = elements.markets[key];
           target.card.classList.remove("loading");
           target.host.innerHTML = `<div class="market-widget-placeholder">${escapeHtml(message)}</div>`;
@@ -1538,15 +1544,14 @@
           `;
         }
 
-        async function fetchMarketIndices() {
+        async function fetchMarketIndicesFrom(target) {
           const controller = new AbortController();
-          const timer = window.setTimeout(() => controller.abort(), 7000);
+          const timer = window.setTimeout(() => controller.abort(), 6500);
           try {
-            const response = await fetch(MARKET_INDICES_ENDPOINT, {
+            const response = await fetch(target.url, {
               method: "GET",
               headers: {
                 Accept: "application/json",
-                "Content-Type": "application/json",
               },
               cache: "no-store",
               signal: controller.signal,
@@ -1554,7 +1559,17 @@
             if (!response.ok) {
               throw new Error(`HTTP ${response.status}`);
             }
-            const payload = await response.json();
+
+            const payload = target.type === "wrapped"
+              ? await (async () => {
+                  const wrapped = await response.json();
+                  if (!wrapped || typeof wrapped.contents !== "string") {
+                    throw new Error("Wrapped proxy payload missing contents");
+                  }
+                  return JSON.parse(wrapped.contents);
+                })()
+              : await response.json();
+
             if (!Array.isArray(payload)) {
               throw new Error("Unexpected market payload");
             }
@@ -1562,6 +1577,18 @@
           } finally {
             window.clearTimeout(timer);
           }
+        }
+
+        async function fetchMarketIndices() {
+          let lastError = null;
+          for (const target of MARKET_INDICES_FALLBACKS) {
+            try {
+              return await fetchMarketIndicesFrom(target);
+            } catch (error) {
+              lastError = error;
+            }
+          }
+          throw lastError || new Error("No market source available.");
         }
 
         async function refreshMarkets(force = false) {
