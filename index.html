@@ -225,6 +225,12 @@
         font-weight: 700;
       }
 
+      .quick-chip-wide {
+        padding: 12px 20px;
+        min-width: 92px;
+        text-align: center;
+      }
+
       .quick-chip:disabled {
         opacity: 0.55;
         cursor: not-allowed;
@@ -836,8 +842,7 @@
                 </div>
                 <div class="section-actions">
                   <div class="quick-actions" aria-label="Funds actions">
-                    <button id="pasteClipboardButton" class="quick-chip" type="button">Paste from Clipboard</button>
-                    <button id="clearAllButton" class="quick-chip" type="button">Clear</button>
+                    <button id="clearAllButton" class="quick-chip quick-chip-wide" type="button">Clear</button>
                   </div>
                 </div>
               </div>
@@ -1025,7 +1030,6 @@
           shortcutModal: document.getElementById("shortcutModal"),
           closeShortcutsButton: document.getElementById("closeShortcutsButton"),
           fundsInput: document.getElementById("fundsInput"),
-          pasteClipboardButton: document.getElementById("pasteClipboardButton"),
           cleanupPasteButton: document.getElementById("cleanupPasteButton"),
           clearAllButton: document.getElementById("clearAllButton"),
           copySummaryButton: document.getElementById("copySummaryButton"),
@@ -1477,25 +1481,6 @@
           persistState();
           if (shouldCalculateImmediately && elements.fundsInput.value.trim()) {
             calculateRms(false);
-          }
-        }
-
-        async function pasteFromClipboard() {
-          if (!window.isSecureContext || !navigator.clipboard || !navigator.clipboard.readText) {
-            alert("Clipboard paste is not available in this browser.");
-            return;
-          }
-
-          try {
-            const clipboardText = await navigator.clipboard.readText();
-            if (!clipboardText.trim()) {
-              alert("Clipboard is empty.");
-              return;
-            }
-            applyFundsText(clipboardText, true);
-            elements.fundsInput.focus();
-          } catch (error) {
-            alert("Could not read clipboard text.");
           }
         }
 
@@ -2161,7 +2146,6 @@
 
         elements.calculateButton.addEventListener("click", () => calculateRms(true));
         elements.clearButton.addEventListener("click", clearRms);
-        elements.pasteClipboardButton.addEventListener("click", pasteFromClipboard);
         elements.cleanupPasteButton.addEventListener("click", cleanupFundsInput);
         elements.clearAllButton.addEventListener("click", clearAllInputs);
         elements.copySummaryButton.addEventListener("click", () => {
