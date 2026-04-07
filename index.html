@@ -205,6 +205,10 @@
         gap: 10px;
       }
 
+      .funds-actions {
+        margin-top: 14px;
+      }
+
       .quick-chip {
         border: 1px solid var(--border);
         border-radius: 999px;
@@ -772,6 +776,12 @@
             placeholder="Opening balance: 500000.00&#10;Total collateral: 300000.00&#10;Payin: 0.00&#10;Payout: 0.00&#10;SPAN: 225000.00&#10;Exposure: 85000.00&#10;Options premium: 12000.00&#10;Delivery margin: 5000.00"
           ></textarea>
           <p class="helper-text">Shortcut: Press <strong>Ctrl + Enter</strong> inside the textarea to calculate.</p>
+          <div class="quick-actions funds-actions" aria-label="Funds quick actions">
+            <button id="cleanupPasteButton" class="quick-chip" type="button">Cleanup Paste</button>
+            <button id="copySummaryButton" class="quick-chip" type="button" disabled>Copy Summary</button>
+            <button id="copyRequiredButton" class="quick-chip" type="button" disabled>Copy Required</button>
+            <button id="copyShortfallButton" class="quick-chip" type="button" disabled>Copy Shortfall</button>
+          </div>
 
           <div class="option-list">
             <label class="option-item">
@@ -802,11 +812,7 @@
                 <div class="section-actions">
                   <div class="quick-actions" aria-label="Funds actions">
                     <button id="pasteClipboardButton" class="quick-chip" type="button">Paste from Clipboard</button>
-                    <button id="cleanupPasteButton" class="quick-chip" type="button">Cleanup Paste</button>
-                    <button id="clearAllButton" class="quick-chip" type="button">Clear All</button>
-                    <button id="copySummaryButton" class="quick-chip" type="button" disabled>Copy Summary</button>
-                    <button id="copyRequiredButton" class="quick-chip" type="button" disabled>Copy Required</button>
-                    <button id="copyShortfallButton" class="quick-chip" type="button" disabled>Copy Shortfall</button>
+                    <button id="clearAllButton" class="quick-chip" type="button">Clear</button>
                   </div>
                 </div>
               </div>
