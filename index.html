@@ -415,16 +415,9 @@
 
       .scratchpad-toolbar {
         display: grid;
-        grid-template-columns: minmax(180px, 0.9fr) minmax(0, 1.4fr) auto auto auto;
+        grid-template-columns: minmax(0, 1fr) auto auto auto;
         gap: 12px;
         margin-top: 20px;
-      }
-
-      .toolbar-stack {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 10px;
-        margin-top: 14px;
       }
 
       .toolbar-note {
@@ -526,36 +519,6 @@
 
       .running-total span { color: var(--muted); font-weight: 700; }
       .running-total strong { font-size: 1.2rem; }
-
-      .subtotal-panel {
-        margin-top: 18px;
-        border: 1px solid var(--border);
-        border-radius: var(--radius-lg);
-        background: var(--panel-soft);
-        padding: 14px 16px;
-      }
-
-      .subtotal-title {
-        margin: 0 0 12px;
-        font-size: 0.95rem;
-        font-weight: 700;
-      }
-
-      .subtotal-list {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 10px;
-      }
-
-      .subtotal-chip {
-        border: 1px solid rgba(255, 75, 75, 0.18);
-        border-radius: 999px;
-        background: var(--accent-soft);
-        color: var(--text);
-        padding: 10px 12px;
-        font-size: 0.88rem;
-        font-weight: 700;
-      }
 
       .shortcut-modal {
         position: fixed;
@@ -791,19 +754,12 @@
             <div class="panel-body">
               <div class="section-header">
                 <div>
-                  <span class="section-kicker">Scratchpad</span>
-                  <h2 class="panel-title">Excel-Style Log</h2>
+                  <h2 class="panel-title">Scratchpad</h2>
                   <p class="panel-copy">Type a formula, press Enter, and keep a running total for quick desk math.</p>
                 </div>
               </div>
 
               <div class="scratchpad-toolbar">
-                <input
-                  id="scratchpadLabelInput"
-                  class="scratchpad-input"
-                  type="text"
-                  placeholder="Label / group"
-                >
                 <input
                   id="scratchpadInput"
                   class="scratchpad-input"
@@ -833,7 +789,6 @@
                   <thead>
                     <tr>
                       <th>Time</th>
-                      <th>Label</th>
                       <th>Formula</th>
                       <th>Result</th>
                       <th>Actions</th>
@@ -841,16 +796,11 @@
                   </thead>
                   <tbody id="scratchpadBody">
                     <tr class="empty-row">
-                      <td colspan="5">No scratchpad entries yet.</td>
+                      <td colspan="4">No scratchpad entries yet.</td>
                     </tr>
                   </tbody>
                 </table>
               </div>
-
-              <section id="subtotalPanel" class="subtotal-panel" hidden>
-                <h3 class="subtotal-title">Group Subtotals</h3>
-                <div id="subtotalList" class="subtotal-list"></div>
-              </section>
 
               <div class="running-total">
                 <span>Running Total</span>
@@ -929,14 +879,11 @@
           proofContent: document.getElementById("proofContent"),
           toggleProofButton: document.getElementById("toggleProofButton"),
           exportProofButton: document.getElementById("exportProofButton"),
-          scratchpadLabelInput: document.getElementById("scratchpadLabelInput"),
           scratchpadInput: document.getElementById("scratchpadInput"),
           addScratchpadButton: document.getElementById("addScratchpadButton"),
           exportScratchpadButton: document.getElementById("exportScratchpadButton"),
           clearScratchpadButton: document.getElementById("clearScratchpadButton"),
           scratchpadBody: document.getElementById("scratchpadBody"),
-          subtotalPanel: document.getElementById("subtotalPanel"),
-          subtotalList: document.getElementById("subtotalList"),
           runningTotal: document.getElementById("runningTotal"),
         };
 
@@ -990,19 +937,9 @@
           return `"${String(value ?? "").replaceAll('"', '""')}"`;
         }
 
-        function formatSignedNumber(value) {
-          const numeric = safeNumber(value);
-          const absolute = Math.abs(numeric).toLocaleString("en-IN", {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-          });
-          return `${numeric > 0 ? "+" : numeric < 0 ? "-" : ""}${absolute}`;
-        }
-
-        function createScratchpadEntry(label, formula, time) {
+        function createScratchpadEntry(formula, time) {
           return {
             id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
-            label: label || "",
             formula: formula || "",
             time: time || new Date().toLocaleTimeString("en-IN", {
               hour: "2-digit",
@@ -1018,7 +955,6 @@
             includeDeliveryMargin: elements.includeDeliveryMargin.checked,
             ignoreOptionPremium: elements.ignoreOptionPremium.checked,
             scratchpadEntries,
-            scratchpadLabelInput: elements.scratchpadLabelInput.value,
             scratchpadInput: elements.scratchpadInput.value,
             darkMode: document.body.classList.contains("theme-dark"),
             proofCollapsed: elements.proofContent.hidden,
@@ -1037,7 +973,6 @@
             elements.includeDeliveryMargin.checked = Boolean(state.includeDeliveryMargin);
             elements.ignoreOptionPremium.checked = Boolean(state.ignoreOptionPremium);
             scratchpadEntries = Array.isArray(state.scratchpadEntries) ? state.scratchpadEntries : [];
-            elements.scratchpadLabelInput.value = state.scratchpadLabelInput || "";
             elements.scratchpadInput.value = state.scratchpadInput || "";
             applyTheme(Boolean(state.darkMode));
             applyProofCollapsed(Boolean(state.proofCollapsed), false);
@@ -1337,7 +1272,6 @@
           pushScratchpadHistory();
           clearRms();
           scratchpadEntries = [];
-          elements.scratchpadLabelInput.value = "";
           elements.scratchpadInput.value = "";
           renderScratchpad();
         }
@@ -1585,36 +1519,12 @@
           });
         }
 
-        function renderGroupSubtotals(rows) {
-          const groups = rows.reduce((map, row) => {
-            const label = String(row.label || "").trim();
-            if (!label || row.hasError) {
-              return map;
-            }
-            map[label] = (map[label] || 0) + row.rawResult;
-            return map;
-          }, {});
-
-          const labels = Object.keys(groups);
-          if (!labels.length) {
-            elements.subtotalPanel.hidden = true;
-            elements.subtotalList.innerHTML = "";
-            return;
-          }
-
-          elements.subtotalPanel.hidden = false;
-          elements.subtotalList.innerHTML = labels.map((label) => `
-            <div class="subtotal-chip">${label}: ${formatMoney(groups[label])}</div>
-          `).join("");
-        }
-
         function renderScratchpad() {
           const rows = getComputedScratchpadEntries();
 
           if (!rows.length) {
-            elements.scratchpadBody.innerHTML = '<tr class="empty-row"><td colspan="5">No scratchpad entries yet.</td></tr>';
+            elements.scratchpadBody.innerHTML = '<tr class="empty-row"><td colspan="4">No scratchpad entries yet.</td></tr>';
             elements.runningTotal.textContent = "Rs. 0.00";
-            renderGroupSubtotals([]);
             persistState();
             return;
           }
@@ -1622,9 +1532,6 @@
           elements.scratchpadBody.innerHTML = rows.map((entry) => `
             <tr data-entry-id="${entry.id}">
               <td>${entry.time}</td>
-              <td>
-                <input class="table-input" type="text" value="${escapeAttribute(entry.label)}" data-entry-field="label" data-entry-id="${entry.id}" placeholder="Optional group">
-              </td>
               <td class="formula-cell">
                 <input class="table-input" type="text" value="${escapeAttribute(entry.formula)}" data-entry-field="formula" data-entry-id="${entry.id}" list="formulaSuggestions" placeholder="50000 * 1.5">
               </td>
@@ -1640,7 +1547,6 @@
 
           const total = rows.reduce((sum, entry) => sum + (entry.hasError ? 0 : entry.rawResult), 0);
           elements.runningTotal.textContent = formatMoney(total);
-          renderGroupSubtotals(rows);
 
           elements.scratchpadBody.querySelectorAll("input[data-entry-field]").forEach((input) => {
             input.addEventListener("focus", (event) => {
@@ -1680,7 +1586,7 @@
               if (action === "delete") {
                 scratchpadEntries = scratchpadEntries.filter((item) => item.id !== entryId);
               } else if (action === "duplicate") {
-                scratchpadEntries.unshift(createScratchpadEntry(targetEntry.label, targetEntry.formula));
+                scratchpadEntries.unshift(createScratchpadEntry(targetEntry.formula));
               }
               renderScratchpad();
             });
@@ -1698,7 +1604,7 @@
           try {
             evaluateExpression(original);
             pushScratchpadHistory();
-            scratchpadEntries.unshift(createScratchpadEntry(elements.scratchpadLabelInput.value.trim(), original));
+            scratchpadEntries.unshift(createScratchpadEntry(original));
             elements.scratchpadInput.value = "";
             renderScratchpad();
             elements.scratchpadInput.focus();
@@ -1710,11 +1616,10 @@
 
         function exportScratchpadCsv() {
           const rows = getComputedScratchpadEntries();
-          const lines = ["Time,Label,Formula,Result"];
+          const lines = ["Time,Formula,Result"];
           rows.forEach((entry) => {
             const values = [
               entry.time,
-              entry.label || "",
               entry.formula || "",
               entry.resultText || "",
             ].map(csvCell);
@@ -1747,14 +1652,13 @@
           }
           const last = scratchpadEntries[0];
           pushScratchpadHistory();
-          scratchpadEntries.unshift(createScratchpadEntry(last.label, last.formula));
+          scratchpadEntries.unshift(createScratchpadEntry(last.formula));
           renderScratchpad();
         }
 
         function clearScratchpad() {
           pushScratchpadHistory();
           scratchpadEntries = [];
-          elements.scratchpadLabelInput.value = "";
           elements.scratchpadInput.value = "";
           renderScratchpad();
           elements.scratchpadInput.focus();
@@ -1812,7 +1716,6 @@
             scheduleAutoCalculate();
           }, 80);
         });
-        elements.scratchpadLabelInput.addEventListener("input", persistState);
         elements.scratchpadInput.addEventListener("input", persistState);
 
         elements.fundsInput.addEventListener("keydown", (event) => {
@@ -1823,12 +1726,6 @@
         });
         elements.addScratchpadButton.addEventListener("click", addScratchpadEntry);
         elements.clearScratchpadButton.addEventListener("click", clearScratchpad);
-        elements.scratchpadLabelInput.addEventListener("keydown", (event) => {
-          if (event.key === "Enter") {
-            event.preventDefault();
-            elements.scratchpadInput.focus();
-          }
-        });
         elements.scratchpadInput.addEventListener("keydown", (event) => {
           if (event.key === "Enter") {
             event.preventDefault();
