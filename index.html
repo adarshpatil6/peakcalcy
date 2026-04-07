@@ -189,7 +189,9 @@
         background: var(--panel-soft);
       }
 
-      .market-widget-slot tv-mini-chart {
+      .market-widget-slot iframe,
+      .market-widget-slot .tradingview-widget-container,
+      .market-widget-slot .tradingview-widget-container__widget {
         display: block;
         width: 100%;
         height: 100%;
@@ -1003,10 +1005,7 @@
           { key: "NSEBANK", tvSymbol: "NSE:BANKNIFTY" },
           { key: "BSESN", tvSymbol: "BSE:SENSEX" },
         ];
-        const TV_WIDGET_SOURCES = [
-          "https://www.tradingview-widget.com/w/en/tv-mini-chart.js",
-          "https://widgets.tradingview-widget.com/w/en/tv-mini-chart.js",
-        ];
+        const MARKET_WIDGET_SCRIPT_SRC = "https://s3.tradingview.com/external-embedding/embed-widget-symbol-info.js";
         const MARKET_REFRESH_THROTTLE_MS = 300000;
         const MARKET_AUTO_REFRESH_MS = 300000;
         const STORAGE_KEY = "calculator-dashboard-state-v1";
@@ -1030,7 +1029,6 @@ Total collateral 14,89,30,231.70`;
         let scratchpadEntries = [];
         let currentProofRows = [];
         let autoCalculateTimer = 0;
-        let marketWidgetLoader = null;
         const scratchpadHistory = [];
         let marketRefreshInFlight = false;
         let lastInteractionRefreshAt = 0;
@@ -1520,10 +1518,27 @@ Total collateral 14,89,30,231.70`;
         }
 
         function createMarketWidget(symbol) {
-          const widget = document.createElement("tv-mini-chart");
-          widget.setAttribute("symbol", symbol);
-          widget.setAttribute("theme", document.body.classList.contains("theme-dark") ? "dark" : "light");
-          return widget;
+          const wrapper = document.createElement("div");
+          wrapper.className = "tradingview-widget-container";
+
+          const inner = document.createElement("div");
+          inner.className = "tradingview-widget-container__widget";
+          wrapper.appendChild(inner);
+
+          const script = document.createElement("script");
+          script.type = "text/javascript";
+          script.src = MARKET_WIDGET_SCRIPT_SRC;
+          script.async = true;
+          script.textContent = JSON.stringify({
+            symbol,
+            width: "100%",
+            locale: "en",
+            colorTheme: document.body.classList.contains("theme-dark") ? "dark" : "light",
+            isTransparent: true,
+          });
+
+          wrapper.appendChild(script);
+          return wrapper;
         }
 
         function mountMarketWidgets() {
@@ -1535,53 +1550,6 @@ Total collateral 14,89,30,231.70`;
           });
         }
 
-        async function ensureMarketWidgets() {
-          if (customElements.get("tv-mini-chart")) {
-            return;
-          }
-          if (marketWidgetLoader) {
-            return marketWidgetLoader;
-          }
-
-          marketWidgetLoader = (async () => {
-            for (const source of TV_WIDGET_SOURCES) {
-              try {
-                await new Promise((resolve, reject) => {
-                  const existing = document.querySelector(`script[data-market-widget-src="${source}"]`);
-                  if (existing) {
-                    resolve();
-                    return;
-                  }
-
-                  const script = document.createElement("script");
-                  script.type = "module";
-                  script.async = true;
-                  script.src = source;
-                  script.dataset.marketWidgetSrc = source;
-                  script.onload = () => resolve();
-                  script.onerror = () => reject(new Error(`Could not load ${source}`));
-                  document.head.appendChild(script);
-                });
-
-                await Promise.race([
-                  customElements.whenDefined("tv-mini-chart"),
-                  new Promise((_, reject) => {
-                    window.setTimeout(() => reject(new Error("Widget definition timed out.")), 2500);
-                  }),
-                ]);
-                return;
-              } catch (error) {
-                // Try the next official/compatibility source.
-              }
-            }
-
-            marketWidgetLoader = null;
-            throw new Error("Market widget loader unavailable.");
-          })();
-
-          return marketWidgetLoader;
-        }
-
         async function refreshMarkets(force = false) {
           if (marketRefreshInFlight && !force) {
             return;
@@ -1591,7 +1559,6 @@ Total collateral 14,89,30,231.70`;
           MARKETS.forEach((market) => setMarketLoading(market.key));
 
           try {
-            await ensureMarketWidgets();
             mountMarketWidgets();
           } catch (error) {
             MARKETS.forEach((market) => {
