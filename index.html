@@ -132,102 +132,6 @@
         line-height: 1.6;
       }
 
-      .market-strip {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-        gap: 14px;
-        margin-top: 16px;
-      }
-
-      .market-strip.pinned {
-        position: sticky;
-        top: 10px;
-        z-index: 30;
-      }
-
-      .market-card {
-        border: 1px solid var(--border);
-        border-radius: var(--radius-lg);
-        background: var(--panel);
-        padding: 14px 16px;
-        box-shadow: var(--shadow);
-        min-height: 210px;
-      }
-
-      .market-card:focus-visible {
-        outline: 2px solid rgba(255, 75, 75, 0.25);
-      }
-
-      .market-topline {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-      }
-
-      .market-name {
-        font-size: 0.8rem;
-        font-weight: 700;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        color: var(--muted);
-      }
-
-      .market-symbol {
-        color: var(--muted);
-        font-size: 0.82rem;
-        font-weight: 600;
-      }
-
-      .market-widget-slot {
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        width: 100%;
-        min-height: 148px;
-        margin-top: 12px;
-        border-radius: 14px;
-        padding: 14px 16px;
-        background: var(--panel-soft);
-      }
-
-      .market-value {
-        font-size: clamp(1.55rem, 2.2vw, 2.2rem);
-        font-weight: 700;
-        line-height: 1.05;
-        font-variant-numeric: tabular-nums;
-        word-break: break-word;
-      }
-
-      .market-change {
-        margin-top: 10px;
-        font-size: 1rem;
-        font-weight: 700;
-      }
-
-      .market-change.up { color: var(--good); }
-      .market-change.down { color: var(--accent); }
-      .market-change.flat { color: var(--muted); }
-
-      .market-meta {
-        margin-top: 8px;
-        color: var(--muted);
-        font-size: 0.86rem;
-        line-height: 1.45;
-      }
-
-      .market-widget-placeholder {
-        display: grid;
-        place-items: center;
-        width: 100%;
-        height: 100%;
-        padding: 14px;
-        color: var(--muted);
-        text-align: center;
-        font-size: 0.95rem;
-        line-height: 1.5;
-      }
-
       .workspace {
         display: grid;
         grid-template-columns: minmax(300px, 30%) minmax(0, 70%);
@@ -722,8 +626,7 @@
         .app-header, .left-column, .panel-body { padding: 18px; }
         .header-row, .section-header { flex-direction: column; }
         .header-actions { width: 100%; }
-        .market-strip, .metric-grid, .scratchpad-toolbar, .shortcut-grid { grid-template-columns: 1fr; }
-        .market-widget-slot { min-height: 132px; }
+        .metric-grid, .scratchpad-toolbar, .shortcut-grid { grid-template-columns: 1fr; }
         .section-actions {
           width: 100%;
           justify-content: flex-start;
@@ -776,43 +679,10 @@
           <h1>Calculator</h1>
           <div class="header-actions">
             <button id="darkModeToggle" class="toggle-chip" type="button" aria-pressed="false">Dark Mode</button>
-            <button id="pinQuotesToggle" class="toggle-chip" type="button" aria-pressed="false">Pin Quotes</button>
             <button id="shortcutsToggle" class="toggle-chip" type="button" aria-haspopup="dialog" aria-controls="shortcutModal">Shortcuts</button>
           </div>
         </div>
       </header>
-
-      <section id="marketStrip" class="market-strip" aria-label="Live market overview">
-        <article id="marketCardNSEI" class="market-card loading" tabindex="0">
-          <div class="market-topline">
-            <div class="market-name">NIFTY</div>
-            <div class="market-symbol">NSE:NIFTY</div>
-          </div>
-          <div id="marketWidgetNSEI" class="market-widget-slot">
-            <div class="market-widget-placeholder">Loading live widget...</div>
-          </div>
-        </article>
-
-        <article id="marketCardNSEBANK" class="market-card loading" tabindex="0">
-          <div class="market-topline">
-            <div class="market-name">BANK NIFTY</div>
-            <div class="market-symbol">NSE:BANKNIFTY</div>
-          </div>
-          <div id="marketWidgetNSEBANK" class="market-widget-slot">
-            <div class="market-widget-placeholder">Loading live widget...</div>
-          </div>
-        </article>
-
-        <article id="marketCardBSESN" class="market-card loading" tabindex="0">
-          <div class="market-topline">
-            <div class="market-name">SENSEX</div>
-            <div class="market-symbol">BSE:SENSEX</div>
-          </div>
-          <div id="marketWidgetBSESN" class="market-widget-slot">
-            <div class="market-widget-placeholder">Loading live widget...</div>
-          </div>
-        </article>
-      </section>
 
       <main class="workspace">
         <section class="left-column">
@@ -1006,9 +876,7 @@
           <article class="shortcut-item"><div class="shortcut-key">Ctrl + S</div><div class="shortcut-desc">Export the scratchpad log as CSV.</div></article>
           <article class="shortcut-item"><div class="shortcut-key">Ctrl + Z</div><div class="shortcut-desc">Undo the last scratchpad change.</div></article>
           <article class="shortcut-item"><div class="shortcut-key">Ctrl + D</div><div class="shortcut-desc">Duplicate the last scratchpad row.</div></article>
-          <article class="shortcut-item"><div class="shortcut-key">Ctrl + R / F5</div><div class="shortcut-desc">Refresh the live quotes without reloading the page.</div></article>
           <article class="shortcut-item"><div class="shortcut-key">Ctrl + / or ?</div><div class="shortcut-desc">Open this shortcut cheat sheet.</div></article>
-          <article class="shortcut-item"><div class="shortcut-key">Alt + 1 / 2 / 3</div><div class="shortcut-desc">Jump to Nifty, Bank Nifty, or Sensex quote cards.</div></article>
           <article class="shortcut-item"><div class="shortcut-key">Escape</div><div class="shortcut-desc">Close the shortcut popup or clear focus.</div></article>
           <article class="shortcut-item"><div class="shortcut-key">Tab</div><div class="shortcut-desc">Cycle through the textarea, options, buttons, and scratchpad fields.</div></article>
         </div>
@@ -1029,31 +897,15 @@
           used_margin: ["Used margin", "Used Margin", "Margin used"],
         };
 
-        const MARKETS = [
-          { key: "NSEI", apiName: "Nifty50", exchange: "NSE", displayName: "NIFTY", symbolLabel: "NSE:NIFTY" },
-          { key: "NSEBANK", apiName: "BankNifty", exchange: "NSE", displayName: "BANK NIFTY", symbolLabel: "NSE:BANKNIFTY" },
-          { key: "BSESN", apiName: "Sensex", exchange: "BSE", displayName: "SENSEX", symbolLabel: "BSE:SENSEX" },
-        ];
-        const MARKET_INDICES_ENDPOINT = "https://connects.torusdigital.com/api/v1/indices";
-        const MARKET_INDICES_FALLBACKS = [
-          { type: "direct", url: MARKET_INDICES_ENDPOINT },
-          { type: "direct", url: `https://api.allorigins.win/raw?url=${encodeURIComponent(MARKET_INDICES_ENDPOINT)}` },
-          { type: "direct", url: `https://corsproxy.io/?${encodeURIComponent(MARKET_INDICES_ENDPOINT)}` },
-          { type: "wrapped", url: `https://whateverorigin.org/get?url=${encodeURIComponent(MARKET_INDICES_ENDPOINT)}` },
-        ];
-        const MARKET_AUTO_REFRESH_MS = 300000;
         const STORAGE_KEY = "calculator-dashboard-state-v1";
 
         let scratchpadEntries = [];
         let currentProofRows = [];
         let autoCalculateTimer = 0;
         const scratchpadHistory = [];
-        let marketRefreshInFlight = false;
 
         const elements = {
-          marketStrip: document.getElementById("marketStrip"),
           darkModeToggle: document.getElementById("darkModeToggle"),
-          pinQuotesToggle: document.getElementById("pinQuotesToggle"),
           shortcutsToggle: document.getElementById("shortcutsToggle"),
           shortcutModal: document.getElementById("shortcutModal"),
           closeShortcutsButton: document.getElementById("closeShortcutsButton"),
@@ -1086,20 +938,6 @@
           subtotalPanel: document.getElementById("subtotalPanel"),
           subtotalList: document.getElementById("subtotalList"),
           runningTotal: document.getElementById("runningTotal"),
-          markets: {
-            NSEI: {
-              card: document.getElementById("marketCardNSEI"),
-              host: document.getElementById("marketWidgetNSEI"),
-            },
-            NSEBANK: {
-              card: document.getElementById("marketCardNSEBANK"),
-              host: document.getElementById("marketWidgetNSEBANK"),
-            },
-            BSESN: {
-              card: document.getElementById("marketCardBSESN"),
-              host: document.getElementById("marketWidgetBSESN"),
-            },
-          },
         };
 
         function escapeRegex(value) {
@@ -1183,7 +1021,6 @@
             scratchpadLabelInput: elements.scratchpadLabelInput.value,
             scratchpadInput: elements.scratchpadInput.value,
             darkMode: document.body.classList.contains("theme-dark"),
-            pinQuotes: elements.marketStrip.classList.contains("pinned"),
             proofCollapsed: elements.proofContent.hidden,
           }));
         }
@@ -1203,7 +1040,6 @@
             elements.scratchpadLabelInput.value = state.scratchpadLabelInput || "";
             elements.scratchpadInput.value = state.scratchpadInput || "";
             applyTheme(Boolean(state.darkMode));
-            applyPinnedQuotes(Boolean(state.pinQuotes));
             applyProofCollapsed(Boolean(state.proofCollapsed), false);
           } catch (error) {
             console.warn("Could not restore local state.", error);
@@ -1230,13 +1066,6 @@
           document.body.classList.toggle("theme-dark", enabled);
           elements.darkModeToggle.classList.toggle("active", enabled);
           elements.darkModeToggle.setAttribute("aria-pressed", enabled ? "true" : "false");
-          persistState();
-        }
-
-        function applyPinnedQuotes(enabled) {
-          elements.marketStrip.classList.toggle("pinned", enabled);
-          elements.pinQuotesToggle.classList.toggle("active", enabled);
-          elements.pinQuotesToggle.setAttribute("aria-pressed", enabled ? "true" : "false");
           persistState();
         }
 
@@ -1513,17 +1342,6 @@
           renderScratchpad();
         }
 
-        function setMarketLoading(key, message = "Loading LTP...") {
-          const target = elements.markets[key];
-          target.card.classList.add("loading");
-          target.host.innerHTML = `<div class="market-widget-placeholder">${escapeHtml(message)}</div>`;
-        }
-
-        function renderMarketError(key, message = "LTP unavailable right now.") {
-          const target = elements.markets[key];
-          target.card.classList.remove("loading");
-          target.host.innerHTML = `<div class="market-widget-placeholder">${escapeHtml(message)}</div>`;
-        }
 
         function renderMarketSuccess(key, market) {
           const target = elements.markets[key];
@@ -1965,7 +1783,6 @@
         elements.exportProofButton.addEventListener("click", exportProofCsv);
         elements.exportScratchpadButton.addEventListener("click", exportScratchpadCsv);
         elements.darkModeToggle.addEventListener("click", () => applyTheme(!document.body.classList.contains("theme-dark")));
-        elements.pinQuotesToggle.addEventListener("click", () => applyPinnedQuotes(!elements.marketStrip.classList.contains("pinned")));
         elements.shortcutsToggle.addEventListener("click", openShortcuts);
         elements.closeShortcutsButton.addEventListener("click", closeShortcuts);
         elements.shortcutModal.addEventListener("click", (event) => {
@@ -2038,24 +1855,6 @@
             return;
           }
 
-          if (event.altKey && !event.ctrlKey && !event.metaKey) {
-            if (event.key === "1") {
-              event.preventDefault();
-              elements.markets.NSEI.card.focus();
-              return;
-            }
-            if (event.key === "2") {
-              event.preventDefault();
-              elements.markets.NSEBANK.card.focus();
-              return;
-            }
-            if (event.key === "3") {
-              event.preventDefault();
-              elements.markets.BSESN.card.focus();
-              return;
-            }
-          }
-
           if (event.ctrlKey && !event.shiftKey && !event.altKey) {
             if (key === "l") {
               event.preventDefault();
@@ -2077,16 +1876,6 @@
               duplicateLastScratchpadEntry();
               return;
             }
-            if (key === "r") {
-              event.preventDefault();
-              refreshMarkets(true);
-              return;
-            }
-          }
-
-          if (event.key === "F5") {
-            event.preventDefault();
-            refreshMarkets(true);
           }
         });
 
@@ -2097,8 +1886,6 @@
           calculateRms(false);
         }
         tryAutoPaste();
-        refreshMarkets();
-        window.setInterval(refreshMarkets, MARKET_AUTO_REFRESH_MS);
       })();
     </script>
   </body>
