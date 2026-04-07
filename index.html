@@ -265,6 +265,13 @@
         gap: 16px;
       }
 
+      .section-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        justify-content: flex-end;
+      }
+
       .section-kicker { margin-bottom: 10px; }
       .option-list, .button-row, .table-shell, .proof-shell, .running-total { margin-top: 18px; }
       .option-list { display: grid; gap: 12px; }
@@ -273,7 +280,6 @@
         display: flex;
         flex-wrap: wrap;
         gap: 10px;
-        margin-top: 14px;
       }
 
       .quick-chip {
@@ -699,6 +705,10 @@
         .header-actions { width: 100%; }
         .market-strip, .metric-grid, .scratchpad-toolbar, .shortcut-grid { grid-template-columns: 1fr; }
         .market-widget-slot { height: 132px; }
+        .section-actions {
+          width: 100%;
+          justify-content: flex-start;
+        }
         .quick-actions {
           flex-wrap: nowrap;
           overflow-x: auto;
@@ -798,12 +808,6 @@
           ></textarea>
           <p class="helper-text">Shortcut: Press <strong>Ctrl + Enter</strong> inside the textarea to calculate.</p>
 
-          <div class="quick-actions" aria-label="Funds actions">
-            <button id="pasteClipboardButton" class="quick-chip" type="button">Paste from Clipboard</button>
-            <button id="sampleDataButton" class="quick-chip" type="button">Sample Data</button>
-            <button id="clearAllButton" class="quick-chip" type="button">Clear All</button>
-          </div>
-
           <div class="option-list">
             <label class="option-item">
               <input id="includeDeliveryMargin" type="checkbox">
@@ -829,6 +833,13 @@
                   <span class="section-kicker">Output</span>
                   <h2 class="panel-title">Margin Snapshot</h2>
                   <p class="panel-copy">Status, requirement view, delivery treatment, and usage percentage.</p>
+                </div>
+                <div class="section-actions">
+                  <div class="quick-actions" aria-label="Funds actions">
+                    <button id="pasteClipboardButton" class="quick-chip" type="button">Paste from Clipboard</button>
+                    <button id="sampleDataButton" class="quick-chip" type="button">Sample Data</button>
+                    <button id="clearAllButton" class="quick-chip" type="button">Clear All</button>
+                  </div>
                 </div>
               </div>
 
@@ -1006,8 +1017,6 @@
           { key: "BSESN", tvSymbol: "BSE:SENSEX" },
         ];
         const MARKET_WIDGET_SCRIPT_SRC = "https://s3.tradingview.com/external-embedding/embed-widget-symbol-info.js";
-        const MARKET_REFRESH_THROTTLE_MS = 300000;
-        const MARKET_AUTO_REFRESH_MS = 300000;
         const STORAGE_KEY = "calculator-dashboard-state-v1";
         const SAMPLE_FUNDS_TEXT = `Available margin
 89,29,632.58
@@ -1031,7 +1040,6 @@ Total collateral 14,89,30,231.70`;
         let autoCalculateTimer = 0;
         const scratchpadHistory = [];
         let marketRefreshInFlight = false;
-        let lastInteractionRefreshAt = 0;
 
         const elements = {
           marketStrip: document.getElementById("marketStrip"),
@@ -1571,12 +1579,6 @@ Total collateral 14,89,30,231.70`;
 
         function refreshDashboardFromClick() {
           calculateRms(false);
-          const now = Date.now();
-          if (now - lastInteractionRefreshAt < MARKET_REFRESH_THROTTLE_MS) {
-            return;
-          }
-          lastInteractionRefreshAt = now;
-          refreshMarkets(true);
         }
 
         function tokenize(expression) {
@@ -2056,7 +2058,6 @@ Total collateral 14,89,30,231.70`;
         }
         tryAutoPaste();
         refreshMarkets();
-        window.setInterval(refreshMarkets, MARKET_AUTO_REFRESH_MS);
       })();
     </script>
   </body>
