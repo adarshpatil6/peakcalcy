@@ -54,6 +54,7 @@
           radial-gradient(circle at top left, rgba(255, 75, 75, 0.08), transparent 24%),
           linear-gradient(180deg, #f7f9fc 0%, var(--bg) 100%);
         color: var(--text);
+        color-scheme: light;
         font-family: "Source Sans Pro", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
       }
 
@@ -61,6 +62,7 @@
         background:
           radial-gradient(circle at top left, rgba(255, 75, 75, 0.1), transparent 24%),
           linear-gradient(180deg, #020617 0%, var(--bg) 100%);
+        color-scheme: dark;
       }
 
       button, input, textarea { font: inherit; }
@@ -149,6 +151,7 @@
         background: var(--panel);
         padding: 14px 16px;
         box-shadow: var(--shadow);
+        min-height: 210px;
       }
 
       .market-card:focus-visible {
@@ -176,25 +179,32 @@
         font-weight: 600;
       }
 
-      .market-price {
-        margin-top: 10px;
-        font-size: clamp(1.35rem, 1.8vw, 1.8rem);
-        font-weight: 700;
+      .market-widget-slot {
+        display: block;
+        width: 100%;
+        height: 148px;
+        margin-top: 12px;
+        border-radius: 14px;
+        overflow: hidden;
+        background: var(--panel-soft);
       }
 
-      .market-change {
-        margin-top: 6px;
-        font-size: 0.95rem;
-        font-weight: 600;
+      .market-widget-slot tv-mini-chart {
+        display: block;
+        width: 100%;
+        height: 100%;
       }
 
-      .market-change.up { color: var(--good); }
-      .market-change.down { color: var(--accent); }
-      .market-change.flat { color: var(--muted); }
-
-      .market-card.loading .market-price,
-      .market-card.loading .market-change {
+      .market-widget-placeholder {
+        display: grid;
+        place-items: center;
+        width: 100%;
+        height: 100%;
+        padding: 14px;
         color: var(--muted);
+        text-align: center;
+        font-size: 0.95rem;
+        line-height: 1.5;
       }
 
       .workspace {
@@ -257,6 +267,29 @@
       .option-list, .button-row, .table-shell, .proof-shell, .running-total { margin-top: 18px; }
       .option-list { display: grid; gap: 12px; }
 
+      .quick-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 14px;
+      }
+
+      .quick-chip {
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        background: var(--panel);
+        color: var(--text);
+        padding: 10px 14px;
+        font-size: 0.88rem;
+        font-weight: 700;
+      }
+
+      .quick-chip:hover, .quick-chip:focus-visible {
+        border-color: rgba(255, 75, 75, 0.35);
+        color: var(--accent);
+        outline: none;
+      }
+
       .option-item {
         display: inline-flex;
         align-items: center;
@@ -274,6 +307,8 @@
         flex-wrap: wrap;
         gap: 12px;
       }
+
+      .rms-actions { position: relative; }
 
       .btn {
         border: 1px solid transparent;
@@ -379,6 +414,13 @@
         color: var(--muted);
         font-size: 0.9rem;
         line-height: 1.5;
+      }
+
+      .proof-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        justify-content: flex-end;
       }
 
       .proof-table-shell {
@@ -654,10 +696,43 @@
         .header-row, .section-header { flex-direction: column; }
         .header-actions { width: 100%; }
         .market-strip, .metric-grid, .scratchpad-toolbar, .shortcut-grid { grid-template-columns: 1fr; }
-        .proof-toolbar { flex-direction: column; }
+        .market-widget-slot { height: 132px; }
+        .quick-actions {
+          flex-wrap: nowrap;
+          overflow-x: auto;
+          padding-bottom: 2px;
+        }
+        .quick-chip {
+          flex: 0 0 auto;
+          width: auto;
+        }
+        .proof-toolbar {
+          position: sticky;
+          top: 8px;
+          z-index: 16;
+          flex-direction: column;
+          background: var(--panel-soft);
+        }
+        .proof-actions {
+          width: 100%;
+        }
+        .proof-actions .btn {
+          flex: 1 1 0;
+          width: auto;
+        }
         .proof-value { white-space: normal; }
         .btn, .option-item { width: 100%; justify-content: center; }
         .button-row > * { flex: 1 1 100%; }
+        .rms-actions {
+          position: sticky;
+          bottom: 8px;
+          z-index: 18;
+          padding-top: 12px;
+          background: linear-gradient(180deg, rgba(247, 249, 252, 0) 0%, var(--panel-soft) 28%, var(--panel-soft) 100%);
+        }
+        body.theme-dark .rms-actions {
+          background: linear-gradient(180deg, rgba(15, 23, 42, 0) 0%, var(--panel-soft) 28%, var(--panel-soft) 100%);
+        }
         .funds-input { min-height: 300px; }
         .running-total { align-items: flex-start; flex-direction: column; }
       }
@@ -677,31 +752,34 @@
       </header>
 
       <section id="marketStrip" class="market-strip" aria-label="Live market overview">
-        <article id="marketCardNSEI" class="market-card loading" tabindex="-1">
+        <article id="marketCardNSEI" class="market-card loading" tabindex="0">
           <div class="market-topline">
             <div class="market-name">NIFTY</div>
-            <div class="market-symbol">^NSEI</div>
+            <div class="market-symbol">NSE:NIFTY</div>
           </div>
-          <div id="marketPriceNSEI" class="market-price">Loading...</div>
-          <div id="marketChangeNSEI" class="market-change flat">Refreshing from Yahoo Finance</div>
+          <div id="marketWidgetNSEI" class="market-widget-slot">
+            <div class="market-widget-placeholder">Loading live widget...</div>
+          </div>
         </article>
 
-        <article id="marketCardNSEBANK" class="market-card loading" tabindex="-1">
+        <article id="marketCardNSEBANK" class="market-card loading" tabindex="0">
           <div class="market-topline">
             <div class="market-name">BANK NIFTY</div>
-            <div class="market-symbol">^NSEBANK</div>
+            <div class="market-symbol">NSE:BANKNIFTY</div>
           </div>
-          <div id="marketPriceNSEBANK" class="market-price">Loading...</div>
-          <div id="marketChangeNSEBANK" class="market-change flat">Refreshing from Yahoo Finance</div>
+          <div id="marketWidgetNSEBANK" class="market-widget-slot">
+            <div class="market-widget-placeholder">Loading live widget...</div>
+          </div>
         </article>
 
-        <article id="marketCardBSESN" class="market-card loading" tabindex="-1">
+        <article id="marketCardBSESN" class="market-card loading" tabindex="0">
           <div class="market-topline">
             <div class="market-name">SENSEX</div>
-            <div class="market-symbol">^BSESN</div>
+            <div class="market-symbol">BSE:SENSEX</div>
           </div>
-          <div id="marketPriceBSESN" class="market-price">Loading...</div>
-          <div id="marketChangeBSESN" class="market-change flat">Refreshing from Yahoo Finance</div>
+          <div id="marketWidgetBSESN" class="market-widget-slot">
+            <div class="market-widget-placeholder">Loading live widget...</div>
+          </div>
         </article>
       </section>
 
@@ -718,6 +796,12 @@
           ></textarea>
           <p class="helper-text">Shortcut: Press <strong>Ctrl + Enter</strong> inside the textarea to calculate.</p>
 
+          <div class="quick-actions" aria-label="Funds actions">
+            <button id="pasteClipboardButton" class="quick-chip" type="button">Paste from Clipboard</button>
+            <button id="sampleDataButton" class="quick-chip" type="button">Sample Data</button>
+            <button id="clearAllButton" class="quick-chip" type="button">Clear All</button>
+          </div>
+
           <div class="option-list">
             <label class="option-item">
               <input id="includeDeliveryMargin" type="checkbox">
@@ -729,7 +813,7 @@
             </label>
           </div>
 
-          <div class="button-row">
+          <div class="button-row rms-actions">
             <button id="calculateButton" class="btn btn-primary" type="button">Calculate</button>
             <button id="clearButton" class="btn btn-secondary" type="button">Clear</button>
           </div>
@@ -778,9 +862,12 @@
                     <div class="metric-label">Math Proof</div>
                     <div class="proof-copy">Compact breakdown of available funds, requirement, and result.</div>
                   </div>
-                  <button id="exportProofButton" class="btn btn-secondary proof-download" type="button" disabled>Download CSV</button>
+                  <div class="proof-actions">
+                    <button id="toggleProofButton" class="btn btn-secondary" type="button" aria-controls="proofContent" aria-expanded="true">Hide Proof</button>
+                    <button id="exportProofButton" class="btn btn-secondary proof-download" type="button" disabled>Download CSV</button>
+                  </div>
                 </div>
-                <div class="table-shell proof-table-shell">
+                <div id="proofContent" class="table-shell proof-table-shell">
                   <table class="proof-table">
                     <thead>
                       <tr>
@@ -912,16 +999,38 @@
         };
 
         const MARKETS = [
-          { key: "NSEI", symbol: "^NSEI" },
-          { key: "NSEBANK", symbol: "^NSEBANK" },
-          { key: "BSESN", symbol: "^BSESN" },
+          { key: "NSEI", tvSymbol: "NSE:NIFTY" },
+          { key: "NSEBANK", tvSymbol: "NSE:BANKNIFTY" },
+          { key: "BSESN", tvSymbol: "BSE:SENSEX" },
+        ];
+        const TV_WIDGET_SOURCES = [
+          "https://www.tradingview-widget.com/w/en/tv-mini-chart.js",
+          "https://widgets.tradingview-widget.com/w/en/tv-mini-chart.js",
         ];
         const MARKET_REFRESH_THROTTLE_MS = 300000;
         const MARKET_AUTO_REFRESH_MS = 300000;
         const STORAGE_KEY = "calculator-dashboard-state-v1";
+        const SAMPLE_FUNDS_TEXT = `Available margin
+89,29,632.58
+Used margin
+28,89,66,004.62
+Available cash
+89,19,359.87
+Opening balance 12,89,65,405.50
+Payin 2,00,00,000.00
+Payout 0.00
+SPAN 21,51,01,391.00
+Delivery margin 0.00
+Exposure 8,27,38,526.97
+Options premium -88,73,913.36
+Collateral (Liquid funds) 0.00
+Collateral (Equity) 14,89,30,231.70
+Total collateral 14,89,30,231.70`;
 
         let scratchpadEntries = [];
         let currentProofRows = [];
+        let autoCalculateTimer = 0;
+        let marketWidgetLoader = null;
         const scratchpadHistory = [];
         let marketRefreshInFlight = false;
         let lastInteractionRefreshAt = 0;
@@ -934,6 +1043,9 @@
           shortcutModal: document.getElementById("shortcutModal"),
           closeShortcutsButton: document.getElementById("closeShortcutsButton"),
           fundsInput: document.getElementById("fundsInput"),
+          pasteClipboardButton: document.getElementById("pasteClipboardButton"),
+          sampleDataButton: document.getElementById("sampleDataButton"),
+          clearAllButton: document.getElementById("clearAllButton"),
           includeDeliveryMargin: document.getElementById("includeDeliveryMargin"),
           ignoreOptionPremium: document.getElementById("ignoreOptionPremium"),
           calculateButton: document.getElementById("calculateButton"),
@@ -948,6 +1060,8 @@
           usedPctValue: document.getElementById("usedPctValue"),
           usedPctSubtext: document.getElementById("usedPctSubtext"),
           mathProofBody: document.getElementById("mathProofBody"),
+          proofContent: document.getElementById("proofContent"),
+          toggleProofButton: document.getElementById("toggleProofButton"),
           exportProofButton: document.getElementById("exportProofButton"),
           scratchpadLabelInput: document.getElementById("scratchpadLabelInput"),
           scratchpadInput: document.getElementById("scratchpadInput"),
@@ -961,18 +1075,15 @@
           markets: {
             NSEI: {
               card: document.getElementById("marketCardNSEI"),
-              price: document.getElementById("marketPriceNSEI"),
-              change: document.getElementById("marketChangeNSEI"),
+              host: document.getElementById("marketWidgetNSEI"),
             },
             NSEBANK: {
               card: document.getElementById("marketCardNSEBANK"),
-              price: document.getElementById("marketPriceNSEBANK"),
-              change: document.getElementById("marketChangeNSEBANK"),
+              host: document.getElementById("marketWidgetNSEBANK"),
             },
             BSESN: {
               card: document.getElementById("marketCardBSESN"),
-              price: document.getElementById("marketPriceBSESN"),
-              change: document.getElementById("marketChangeBSESN"),
+              host: document.getElementById("marketWidgetBSESN"),
             },
           },
         };
@@ -1059,6 +1170,7 @@
             scratchpadInput: elements.scratchpadInput.value,
             darkMode: document.body.classList.contains("theme-dark"),
             pinQuotes: elements.marketStrip.classList.contains("pinned"),
+            proofCollapsed: elements.proofContent.hidden,
           }));
         }
 
@@ -1076,8 +1188,9 @@
             scratchpadEntries = Array.isArray(state.scratchpadEntries) ? state.scratchpadEntries : [];
             elements.scratchpadLabelInput.value = state.scratchpadLabelInput || "";
             elements.scratchpadInput.value = state.scratchpadInput || "";
-            applyTheme(Boolean(state.darkMode));
+            applyTheme(Boolean(state.darkMode), false);
             applyPinnedQuotes(Boolean(state.pinQuotes));
+            applyProofCollapsed(Boolean(state.proofCollapsed), false);
           } catch (error) {
             console.warn("Could not restore local state.", error);
           }
@@ -1099,11 +1212,14 @@
           renderScratchpad();
         }
 
-        function applyTheme(enabled) {
+        function applyTheme(enabled, shouldRefreshMarkets = true) {
           document.body.classList.toggle("theme-dark", enabled);
           elements.darkModeToggle.classList.toggle("active", enabled);
           elements.darkModeToggle.setAttribute("aria-pressed", enabled ? "true" : "false");
           persistState();
+          if (shouldRefreshMarkets) {
+            refreshMarkets(true);
+          }
         }
 
         function applyPinnedQuotes(enabled) {
@@ -1111,6 +1227,15 @@
           elements.pinQuotesToggle.classList.toggle("active", enabled);
           elements.pinQuotesToggle.setAttribute("aria-pressed", enabled ? "true" : "false");
           persistState();
+        }
+
+        function applyProofCollapsed(collapsed, persist = true) {
+          elements.proofContent.hidden = collapsed;
+          elements.toggleProofButton.textContent = collapsed ? "Show Proof" : "Hide Proof";
+          elements.toggleProofButton.setAttribute("aria-expanded", collapsed ? "false" : "true");
+          if (persist) {
+            persistState();
+          }
         }
 
         function openShortcuts() {
@@ -1123,6 +1248,47 @@
 
         function brokerTextLooksValid(text) {
           return /(opening balance|available margin|span|exposure|delivery margin|options premium)/i.test(text || "");
+        }
+
+        function scheduleAutoCalculate(delayMs = 550) {
+          window.clearTimeout(autoCalculateTimer);
+          autoCalculateTimer = window.setTimeout(() => {
+            if (elements.fundsInput.value.trim()) {
+              calculateRms(false);
+            }
+          }, delayMs);
+        }
+
+        function applyFundsText(text, shouldCalculateImmediately = true) {
+          elements.fundsInput.value = text || "";
+          persistState();
+          if (shouldCalculateImmediately && elements.fundsInput.value.trim()) {
+            calculateRms(false);
+          }
+        }
+
+        async function pasteFromClipboard() {
+          if (!window.isSecureContext || !navigator.clipboard || !navigator.clipboard.readText) {
+            alert("Clipboard paste is not available in this browser.");
+            return;
+          }
+
+          try {
+            const clipboardText = await navigator.clipboard.readText();
+            if (!clipboardText.trim()) {
+              alert("Clipboard is empty.");
+              return;
+            }
+            applyFundsText(clipboardText, true);
+            elements.fundsInput.focus();
+          } catch (error) {
+            alert("Could not read clipboard text.");
+          }
+        }
+
+        function applySampleData() {
+          applyFundsText(SAMPLE_FUNDS_TEXT, true);
+          elements.fundsInput.focus();
         }
 
         function escapeAttribute(value) {
@@ -1322,6 +1488,7 @@
         }
 
         function clearRms() {
+          window.clearTimeout(autoCalculateTimer);
           elements.fundsInput.value = "";
           elements.includeDeliveryMargin.checked = false;
           elements.ignoreOptionPremium.checked = false;
@@ -1331,6 +1498,7 @@
         }
 
         function clearAllInputs() {
+          window.clearTimeout(autoCalculateTimer);
           pushScratchpadHistory();
           clearRms();
           scratchpadEntries = [];
@@ -1339,90 +1507,83 @@
           renderScratchpad();
         }
 
-        function setMarketLoading(key) {
+        function setMarketLoading(key, message = "Loading live widget...") {
           const target = elements.markets[key];
           target.card.classList.add("loading");
-          target.change.className = "market-change flat";
-          target.price.textContent = "Loading...";
-          target.change.textContent = "Refreshing from Yahoo Finance";
+          target.host.innerHTML = `<div class="market-widget-placeholder">${escapeHtml(message)}</div>`;
         }
 
-        function renderMarketError(key, message) {
+        function renderMarketError(key, message = "Live quote widget unavailable.") {
           const target = elements.markets[key];
           target.card.classList.remove("loading");
-          target.change.className = "market-change flat";
-          target.price.textContent = "Unavailable";
-          target.change.textContent = "Quote refresh failed";
+          target.host.innerHTML = `<div class="market-widget-placeholder">${escapeHtml(message)}</div>`;
         }
 
-        function renderMarketSuccess(key, quote) {
-          const target = elements.markets[key];
-          const changeClass = quote.change > 0 ? "up" : quote.change < 0 ? "down" : "flat";
-          target.card.classList.remove("loading");
-          target.price.textContent = quote.price.toLocaleString("en-IN", {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
+        function createMarketWidget(symbol) {
+          const widget = document.createElement("tv-mini-chart");
+          widget.setAttribute("symbol", symbol);
+          widget.setAttribute("theme", document.body.classList.contains("theme-dark") ? "dark" : "light");
+          return widget;
+        }
+
+        function mountMarketWidgets() {
+          MARKETS.forEach((market) => {
+            const target = elements.markets[market.key];
+            target.host.innerHTML = "";
+            target.host.appendChild(createMarketWidget(market.tvSymbol));
+            target.card.classList.remove("loading");
           });
-          target.change.className = `market-change ${changeClass}`;
-          target.change.textContent = `${formatSignedNumber(quote.change)} (${formatSignedNumber(quote.changePercent)}%)`;
         }
 
-        async function fetchJsonThroughProxy(url) {
-          const allOriginsUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
-          const fetchWithTimeout = async (targetUrl, timeoutMs) => {
-            const controller = new AbortController();
-            const timer = window.setTimeout(() => controller.abort(), timeoutMs);
-            try {
-              const response = await fetch(targetUrl, { cache: "no-store", signal: controller.signal });
-              if (!response.ok) {
-                throw new Error(`HTTP ${response.status}`);
+        async function ensureMarketWidgets() {
+          if (customElements.get("tv-mini-chart")) {
+            return;
+          }
+          if (marketWidgetLoader) {
+            return marketWidgetLoader;
+          }
+
+          marketWidgetLoader = (async () => {
+            for (const source of TV_WIDGET_SOURCES) {
+              try {
+                await new Promise((resolve, reject) => {
+                  const existing = document.querySelector(`script[data-market-widget-src="${source}"]`);
+                  if (existing) {
+                    resolve();
+                    return;
+                  }
+
+                  const script = document.createElement("script");
+                  script.type = "module";
+                  script.async = true;
+                  script.src = source;
+                  script.dataset.marketWidgetSrc = source;
+                  script.onload = () => resolve();
+                  script.onerror = () => reject(new Error(`Could not load ${source}`));
+                  document.head.appendChild(script);
+                });
+
+                await Promise.race([
+                  customElements.whenDefined("tv-mini-chart"),
+                  new Promise((_, reject) => {
+                    window.setTimeout(() => reject(new Error("Widget definition timed out.")), 2500);
+                  }),
+                ]);
+                return;
+              } catch (error) {
+                // Try the next official/compatibility source.
               }
-              return await response.json();
-            } finally {
-              window.clearTimeout(timer);
             }
-          };
 
-          try {
-            return await fetchWithTimeout(allOriginsUrl, 6500);
-          } catch (primaryError) {
-            const whateverOriginUrl = `https://whateverorigin.org/get?url=${encodeURIComponent(url)}`;
-            const wrapped = await fetchWithTimeout(whateverOriginUrl, 6500);
-            if (!wrapped || typeof wrapped.contents !== "string") {
-              throw primaryError;
-            }
-            return JSON.parse(wrapped.contents);
-          }
+            marketWidgetLoader = null;
+            throw new Error("Market widget loader unavailable.");
+          })();
+
+          return marketWidgetLoader;
         }
 
-        async function fetchYahooQuote(symbol) {
-          const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=2m&range=1d&includePrePost=false&corsDomain=finance.yahoo.com&.tsrc=finance`;
-          const payload = await fetchJsonThroughProxy(url);
-          const meta = payload && payload.chart && payload.chart.result && payload.chart.result[0] && payload.chart.result[0].meta;
-          if (!meta) {
-            throw new Error("No chart data");
-          }
-
-          const price = safeNumber(meta.regularMarketPrice || meta.previousClose || meta.chartPreviousClose);
-          const previousClose = safeNumber(meta.previousClose || meta.chartPreviousClose);
-          if (!Number.isFinite(price) || price <= 0 || !Number.isFinite(previousClose) || previousClose <= 0) {
-            throw new Error("Invalid quote data");
-          }
-          const change = price - previousClose;
-          const changePercent = previousClose ? (change / previousClose) * 100 : 0;
-          const timestamp = meta.regularMarketTime
-            ? new Date(meta.regularMarketTime * 1000).toLocaleTimeString("en-IN", {
-                hour: "2-digit",
-                minute: "2-digit",
-                second: "2-digit",
-              })
-            : "Live";
-
-          return { price, change, changePercent, timestamp };
-        }
-
-        async function refreshMarkets() {
-          if (marketRefreshInFlight) {
+        async function refreshMarkets(force = false) {
+          if (marketRefreshInFlight && !force) {
             return;
           }
 
@@ -1430,14 +1591,12 @@
           MARKETS.forEach((market) => setMarketLoading(market.key));
 
           try {
-            await Promise.all(MARKETS.map(async (market) => {
-              try {
-                const quote = await fetchYahooQuote(market.symbol);
-                renderMarketSuccess(market.key, quote);
-              } catch (error) {
-                renderMarketError(market.key, "Check internet or Yahoo Finance availability.");
-              }
-            }));
+            await ensureMarketWidgets();
+            mountMarketWidgets();
+          } catch (error) {
+            MARKETS.forEach((market) => {
+              renderMarketError(market.key, "Live widget unavailable right now.");
+            });
           } finally {
             marketRefreshInFlight = false;
           }
@@ -1450,7 +1609,7 @@
             return;
           }
           lastInteractionRefreshAt = now;
-          refreshMarkets();
+          refreshMarkets(true);
         }
 
         function tokenize(expression) {
@@ -1781,8 +1940,7 @@
           try {
             const clipboardText = await navigator.clipboard.readText();
             if (brokerTextLooksValid(clipboardText)) {
-              elements.fundsInput.value = clipboardText;
-              calculateRms(false);
+              applyFundsText(clipboardText, true);
             }
           } catch (error) {
             // Clipboard access is optional.
@@ -1791,6 +1949,10 @@
 
         elements.calculateButton.addEventListener("click", () => calculateRms(true));
         elements.clearButton.addEventListener("click", clearRms);
+        elements.pasteClipboardButton.addEventListener("click", pasteFromClipboard);
+        elements.sampleDataButton.addEventListener("click", applySampleData);
+        elements.clearAllButton.addEventListener("click", clearAllInputs);
+        elements.toggleProofButton.addEventListener("click", () => applyProofCollapsed(!elements.proofContent.hidden));
         elements.exportProofButton.addEventListener("click", exportProofCsv);
         elements.exportScratchpadButton.addEventListener("click", exportScratchpadCsv);
         elements.darkModeToggle.addEventListener("click", () => applyTheme(!document.body.classList.contains("theme-dark")));
@@ -1812,6 +1974,18 @@
           persistState();
         });
         elements.fundsInput.addEventListener("input", persistState);
+        elements.fundsInput.addEventListener("paste", () => {
+          window.setTimeout(() => {
+            persistState();
+            scheduleAutoCalculate();
+          }, 40);
+        });
+        elements.fundsInput.addEventListener("drop", () => {
+          window.setTimeout(() => {
+            persistState();
+            scheduleAutoCalculate();
+          }, 80);
+        });
         elements.scratchpadLabelInput.addEventListener("input", persistState);
         elements.scratchpadInput.addEventListener("input", persistState);
 
@@ -1896,14 +2070,14 @@
             }
             if (key === "r") {
               event.preventDefault();
-              refreshMarkets();
+              refreshMarkets(true);
               return;
             }
           }
 
           if (event.key === "F5") {
             event.preventDefault();
-            refreshMarkets();
+            refreshMarkets(true);
           }
         });
 
