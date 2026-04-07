@@ -858,7 +858,7 @@
                 <article class="metric-card">
                   <div class="metric-label">Delivery Margin</div>
                   <div id="deliveryValue" class="metric-value">Rs. 0.00</div>
-                  <div id="deliverySubtext" class="metric-subtext">Currently excluded</div>
+                  <div id="deliverySubtext" class="metric-subtext">Reference only unless included</div>
                 </article>
 
                 <article class="metric-card">
@@ -1651,10 +1651,10 @@
             : "Additional funds required to cover peak requirement.";
           elements.requiredValue.textContent = formatMoney(result.requiredMargin);
           elements.requiredSubtext.textContent = "SPAN + Exposure + Option Premium + optional Delivery.";
-          elements.deliveryValue.textContent = formatMoney(result.deliveryMarginUsed);
+          elements.deliveryValue.textContent = formatMoney(result.extracted.delivery_margin);
           elements.deliverySubtext.textContent = result.deliveryMarginUsed > 0
             ? "Included in requirement."
-            : "Excluded from requirement.";
+            : "Excluded from requirement. Reference only.";
           elements.usedPctValue.textContent = formatPercent(result.marginUsedPct);
           elements.usedPctSubtext.textContent = `${formatMoney(result.totalAvailable)} total available base`;
           elements.premiumToast.hidden = !(result.extracted.option_premium > 0);
@@ -1670,7 +1670,7 @@
           elements.requiredValue.textContent = "Rs. 0.00";
           elements.requiredSubtext.textContent = "SPAN + Exposure + Option Premium + optional Delivery.";
           elements.deliveryValue.textContent = "Rs. 0.00";
-          elements.deliverySubtext.textContent = "Currently excluded";
+          elements.deliverySubtext.textContent = "Reference only unless included";
           elements.usedPctValue.textContent = "0.00%";
           elements.usedPctSubtext.textContent = "Based on total available funds";
           elements.premiumToast.hidden = true;
