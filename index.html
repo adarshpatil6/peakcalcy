@@ -668,6 +668,129 @@
       .running-total span { color: var(--muted); font-weight: 700; }
       .running-total strong { font-size: 1.2rem; }
 
+      .span-panel {
+        margin-top: 24px;
+      }
+
+      .file-picker {
+        position: relative;
+        overflow: hidden;
+      }
+
+      .file-picker input[type="file"] {
+        position: absolute;
+        inset: 0;
+        opacity: 0;
+        cursor: pointer;
+      }
+
+      .span-upload-row {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 12px;
+        margin-top: 20px;
+      }
+
+      .span-summary-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 14px;
+        margin-top: 18px;
+      }
+
+      .span-summary-card {
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        background: var(--panel-soft);
+        padding: 16px;
+        min-width: 0;
+      }
+
+      .span-summary-value {
+        margin-top: 10px;
+        font-size: 1rem;
+        font-weight: 700;
+        line-height: 1.45;
+        overflow-wrap: anywhere;
+      }
+
+      .span-status {
+        margin-top: 18px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        background: var(--panel-soft);
+        color: var(--muted);
+        padding: 14px 16px;
+        line-height: 1.55;
+      }
+
+      .span-status.is-working {
+        color: var(--text);
+      }
+
+      .span-status.is-ready {
+        border-color: rgba(22, 163, 74, 0.28);
+        background: var(--good-soft);
+        color: var(--text);
+      }
+
+      .span-status.is-error {
+        border-color: rgba(255, 75, 75, 0.34);
+        background: var(--danger-soft);
+        color: var(--accent);
+      }
+
+      .span-preview-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        margin-top: 18px;
+      }
+
+      .span-table {
+        width: 100%;
+        min-width: 1800px;
+        border-collapse: collapse;
+      }
+
+      .span-table th,
+      .span-table td {
+        padding: 12px 14px;
+        border-bottom: 1px solid rgba(223, 229, 239, 0.95);
+        text-align: left;
+        vertical-align: top;
+        white-space: nowrap;
+      }
+
+      .span-table th {
+        background: var(--panel-soft);
+        color: var(--muted);
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .span-table td {
+        font-family: Consolas, "SFMono-Regular", Monaco, monospace;
+        font-size: 0.84rem;
+      }
+
+      .span-table tbody tr:last-child td {
+        border-bottom: none;
+      }
+
+      .span-empty td {
+        color: var(--muted);
+        text-align: center;
+        padding: 26px;
+        white-space: normal;
+        font-family: "Source Sans Pro", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+        font-size: 0.92rem;
+      }
+
       .shortcut-modal {
         position: fixed;
         inset: 0;
@@ -979,6 +1102,69 @@
           </section>
         </section>
       </main>
+
+      <section class="panel span-panel">
+        <div class="panel-body">
+          <div class="section-header">
+            <div>
+              <span class="section-kicker">Span</span>
+              <h2 class="panel-title">SPAN Extract</h2>
+              <p class="panel-copy">Upload a raw <strong>.spn</strong> file or a <strong>.zip</strong> containing one, parse it locally in the browser, preview the extracted rows, and download the CSV.</p>
+            </div>
+            <div class="section-actions">
+              <button id="downloadSpanCsvButton" class="btn btn-secondary" type="button" disabled>Download CSV</button>
+              <button id="clearSpanButton" class="btn btn-secondary" type="button" disabled>Clear</button>
+            </div>
+          </div>
+
+          <div class="span-upload-row">
+            <label class="btn btn-secondary file-picker" for="spanFileInput">
+              Upload .spn / .zip
+              <input id="spanFileInput" type="file" accept=".spn,.zip,application/zip">
+            </label>
+            <div class="helper-text">If a ZIP is uploaded, the first <strong>.spn</strong> file inside it is extracted and parsed using the same state-machine logic as your Python script.</div>
+          </div>
+
+          <div class="span-summary-grid">
+            <article class="span-summary-card">
+              <div class="metric-label">Source File</div>
+              <div id="spanSourceValue" class="span-summary-value">No file loaded</div>
+            </article>
+            <article class="span-summary-card">
+              <div class="metric-label">Inner File</div>
+              <div id="spanInnerValue" class="span-summary-value">Waiting for upload</div>
+            </article>
+            <article class="span-summary-card">
+              <div class="metric-label">Rows Extracted</div>
+              <div id="spanRowsValue" class="span-summary-value">0</div>
+            </article>
+            <article class="span-summary-card">
+              <div class="metric-label">Source Type</div>
+              <div id="spanModeValue" class="span-summary-value">-</div>
+            </article>
+          </div>
+
+          <div id="spanStatus" class="span-status">Choose a SPAN file to parse. Results stay local in your browser.</div>
+
+          <div class="span-preview-head">
+            <div>
+              <div class="metric-label">Preview</div>
+              <div id="spanPreviewCopy" class="proof-copy">The extracted table will appear here after parsing.</div>
+            </div>
+          </div>
+
+          <div class="table-shell">
+            <table class="span-table">
+              <thead id="spanTableHead"></thead>
+              <tbody id="spanTableBody">
+                <tr class="span-empty">
+                  <td colspan="23">Upload an <strong>nsccl*.spn</strong> or <strong>.zip</strong> file to preview extracted SPAN rows.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
     </div>
     <div id="shortcutModal" class="shortcut-modal" role="dialog" aria-modal="true" aria-labelledby="shortcutTitle">
       <div class="shortcut-card">
@@ -991,7 +1177,7 @@
         </div>
         <div class="shortcut-grid">
           <article class="shortcut-item"><div class="shortcut-key">Ctrl + Enter</div><div class="shortcut-desc">Calculate RMS from the pasted funds text.</div></article>
-          <article class="shortcut-item"><div class="shortcut-key">Ctrl + L</div><div class="shortcut-desc">Clear RMS inputs and the scratchpad log.</div></article>
+          <article class="shortcut-item"><div class="shortcut-key">Ctrl + L</div><div class="shortcut-desc">Clear RMS inputs, the scratchpad log, and the SPAN extract section.</div></article>
           <article class="shortcut-item"><div class="shortcut-key">Ctrl + S</div><div class="shortcut-desc">Export the scratchpad log as CSV.</div></article>
           <article class="shortcut-item"><div class="shortcut-key">Ctrl + Z</div><div class="shortcut-desc">Undo the last scratchpad change.</div></article>
           <article class="shortcut-item"><div class="shortcut-key">Ctrl + D</div><div class="shortcut-desc">Duplicate the last scratchpad row.</div></article>
@@ -1018,10 +1204,22 @@
 
         const STORAGE_KEY = "calculator-dashboard-state-v1";
         const CLEANUP_ALIASES = Object.values(FUND_LABELS).flat().sort((left, right) => right.length - left.length);
+        const SPAN_HEADERS = [
+          "Symbol",
+          "Expiry",
+          "Type",
+          "Strike",
+          "Price",
+          "Price_Scan_Range",
+          "Delta",
+          ...Array.from({ length: 16 }, (_, index) => `Scenario_${index + 1}`),
+        ];
 
         let scratchpadEntries = [];
         let currentProofRows = [];
         let currentRmsResult = null;
+        let currentSpanRows = [];
+        let currentSpanMeta = null;
         let autoCalculateTimer = 0;
         const scratchpadHistory = [];
 
@@ -1063,6 +1261,17 @@
           scratchpadHelperButtons: Array.from(document.querySelectorAll("[data-helper-kind]")),
           scratchpadBody: document.getElementById("scratchpadBody"),
           runningTotal: document.getElementById("runningTotal"),
+          spanFileInput: document.getElementById("spanFileInput"),
+          downloadSpanCsvButton: document.getElementById("downloadSpanCsvButton"),
+          clearSpanButton: document.getElementById("clearSpanButton"),
+          spanSourceValue: document.getElementById("spanSourceValue"),
+          spanInnerValue: document.getElementById("spanInnerValue"),
+          spanRowsValue: document.getElementById("spanRowsValue"),
+          spanModeValue: document.getElementById("spanModeValue"),
+          spanStatus: document.getElementById("spanStatus"),
+          spanPreviewCopy: document.getElementById("spanPreviewCopy"),
+          spanTableHead: document.getElementById("spanTableHead"),
+          spanTableBody: document.getElementById("spanTableBody"),
         };
 
         function escapeRegex(value) {
@@ -1113,6 +1322,322 @@
 
         function csvCell(value) {
           return `"${String(value ?? "").replaceAll('"', '""')}"`;
+        }
+
+        function renderSpanTableHead() {
+          elements.spanTableHead.innerHTML = `<tr>${SPAN_HEADERS.map((header) => `<th>${escapeHtml(header)}</th>`).join("")}</tr>`;
+        }
+
+        function setSpanStatus(message, tone = "") {
+          elements.spanStatus.className = `span-status${tone ? ` ${tone}` : ""}`;
+          elements.spanStatus.textContent = message;
+        }
+
+        function renderSpanPreviewRows(rows) {
+          const previewLimit = 60;
+          if (!rows.length) {
+            elements.spanPreviewCopy.textContent = "The extracted table will appear here after parsing.";
+            elements.spanTableBody.innerHTML = '<tr class="span-empty"><td colspan="23">Upload an nsccl*.spn or .zip file to preview extracted SPAN rows.</td></tr>';
+            return;
+          }
+
+          const previewRows = rows.slice(0, previewLimit);
+          elements.spanPreviewCopy.textContent = rows.length > previewLimit
+            ? `Showing the first ${previewLimit} of ${rows.length} extracted rows. Download CSV for the full export.`
+            : `Showing all ${rows.length} extracted rows.`;
+          elements.spanTableBody.innerHTML = previewRows.map((row) => `
+            <tr>
+              ${SPAN_HEADERS.map((header) => `<td>${escapeHtml(row[header] ?? "")}</td>`).join("")}
+            </tr>
+          `).join("");
+        }
+
+        function updateSpanSummary(meta, rowsCount) {
+          elements.spanSourceValue.textContent = meta && meta.sourceName ? meta.sourceName : "No file loaded";
+          elements.spanInnerValue.textContent = meta && meta.innerName ? meta.innerName : "Waiting for upload";
+          elements.spanRowsValue.textContent = String(rowsCount || 0);
+          elements.spanModeValue.textContent = meta && meta.mode ? meta.mode : "-";
+        }
+
+        function resetSpanExtract(resetInput = true) {
+          currentSpanRows = [];
+          currentSpanMeta = null;
+          updateSpanSummary(null, 0);
+          renderSpanPreviewRows([]);
+          setSpanStatus("Choose a SPAN file to parse. Results stay local in your browser.");
+          elements.downloadSpanCsvButton.disabled = true;
+          elements.clearSpanButton.disabled = true;
+          if (resetInput) {
+            elements.spanFileInput.value = "";
+          }
+        }
+
+        function buildSpanCsvLines(rows) {
+          const lines = [SPAN_HEADERS.map(csvCell).join(",")];
+          rows.forEach((row) => {
+            lines.push(SPAN_HEADERS.map((header) => csvCell(row[header] ?? "")).join(","));
+          });
+          return lines;
+        }
+
+        function exportSpanCsv() {
+          if (!currentSpanRows.length) {
+            alert("Upload and parse a SPAN file before exporting the CSV.");
+            return;
+          }
+
+          downloadCsvFile(buildSpanCsvLines(currentSpanRows), "Span_Risk_Data.csv");
+        }
+
+        function decodeUtf8(bytes) {
+          return new TextDecoder("utf-8").decode(bytes);
+        }
+
+        function findEndOfCentralDirectory(view) {
+          const minimumOffset = Math.max(0, view.byteLength - 22 - 65536);
+          for (let offset = view.byteLength - 22; offset >= minimumOffset; offset -= 1) {
+            if (view.getUint32(offset, true) === 0x06054b50) {
+              return offset;
+            }
+          }
+          return -1;
+        }
+
+        async function inflateRawBytes(bytes) {
+          if (typeof DecompressionStream === "undefined") {
+            throw new Error("ZIP extraction needs a newer browser. Upload the raw .spn file if ZIP parsing is unavailable.");
+          }
+
+          const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream("deflate-raw"));
+          return new Uint8Array(await new Response(stream).arrayBuffer());
+        }
+
+        async function extractFirstSpnFromZip(file) {
+          const buffer = await file.arrayBuffer();
+          const view = new DataView(buffer);
+          const bytes = new Uint8Array(buffer);
+          const eocdOffset = findEndOfCentralDirectory(view);
+
+          if (eocdOffset < 0) {
+            throw new Error("Could not find a valid ZIP directory.");
+          }
+
+          const entryCount = view.getUint16(eocdOffset + 10, true);
+          let directoryOffset = view.getUint32(eocdOffset + 16, true);
+          let targetEntry = null;
+
+          for (let index = 0; index < entryCount; index += 1) {
+            if (view.getUint32(directoryOffset, true) !== 0x02014b50) {
+              throw new Error("ZIP directory is malformed.");
+            }
+
+            const compressionMethod = view.getUint16(directoryOffset + 10, true);
+            const compressedSize = view.getUint32(directoryOffset + 20, true);
+            const fileNameLength = view.getUint16(directoryOffset + 28, true);
+            const extraLength = view.getUint16(directoryOffset + 30, true);
+            const commentLength = view.getUint16(directoryOffset + 32, true);
+            const localHeaderOffset = view.getUint32(directoryOffset + 42, true);
+            const nameStart = directoryOffset + 46;
+            const name = decodeUtf8(bytes.subarray(nameStart, nameStart + fileNameLength));
+
+            if (!targetEntry && name.toLowerCase().endsWith(".spn")) {
+              targetEntry = {
+                name,
+                compressionMethod,
+                compressedSize,
+                localHeaderOffset,
+              };
+            }
+
+            directoryOffset += 46 + fileNameLength + extraLength + commentLength;
+          }
+
+          if (!targetEntry) {
+            throw new Error("ZIP uploaded, but no .spn file was found inside it.");
+          }
+
+          if (view.getUint32(targetEntry.localHeaderOffset, true) !== 0x04034b50) {
+            throw new Error("ZIP local file header is malformed.");
+          }
+
+          const localNameLength = view.getUint16(targetEntry.localHeaderOffset + 26, true);
+          const localExtraLength = view.getUint16(targetEntry.localHeaderOffset + 28, true);
+          const dataStart = targetEntry.localHeaderOffset + 30 + localNameLength + localExtraLength;
+          const compressedBytes = bytes.subarray(dataStart, dataStart + targetEntry.compressedSize);
+
+          let fileBytes = compressedBytes;
+          if (targetEntry.compressionMethod === 8) {
+            fileBytes = await inflateRawBytes(compressedBytes);
+          } else if (targetEntry.compressionMethod !== 0) {
+            throw new Error(`ZIP uses unsupported compression method ${targetEntry.compressionMethod}.`);
+          }
+
+          return {
+            innerName: targetEntry.name,
+            text: decodeUtf8(fileBytes),
+          };
+        }
+
+        async function readSpanFile(file) {
+          const lowerName = String(file && file.name || "").toLowerCase();
+          if (!file) {
+            throw new Error("Select a .spn or .zip file first.");
+          }
+
+          if (lowerName.endsWith(".spn")) {
+            return {
+              mode: "SPN",
+              sourceName: file.name,
+              innerName: file.name,
+              text: await file.text(),
+            };
+          }
+
+          if (lowerName.endsWith(".zip")) {
+            const extracted = await extractFirstSpnFromZip(file);
+            return {
+              mode: "ZIP",
+              sourceName: file.name,
+              innerName: extracted.innerName,
+              text: extracted.text,
+            };
+          }
+
+          throw new Error("Only .spn and .zip files are supported.");
+        }
+
+        function parseSpanText(text) {
+          const rows = [];
+          const tagPattern = /<(\/?)(\w+)[^>]*>([^<]*)/g;
+
+          let currSymbol = "Unknown";
+          let currExpiry = "";
+          let currStrike = "0";
+          let currType = "FUT";
+          let currPrice = "0";
+          let currDelta = "0";
+          let currPriceScanRange = "0";
+          let inRiskArray = false;
+          let riskArrayValues = [];
+          let match = tagPattern.exec(text);
+
+          while (match) {
+            const isCloseTag = match[1] === "/";
+            const tagName = match[2];
+            const content = String(match[3] || "").trim();
+
+            if ((tagName === "pfCode" || tagName === "cc") && !isCloseTag) {
+              currSymbol = content || "Unknown";
+            }
+
+            if ((tagName === "phy" || tagName === "fut") && !isCloseTag) {
+              currExpiry = "";
+              currStrike = "0";
+              currType = "FUT";
+              currPrice = "0";
+              currPriceScanRange = "0";
+              riskArrayValues = [];
+            }
+
+            if (tagName === "pe" && !isCloseTag) {
+              currExpiry = content;
+            }
+            if (tagName === "k" && !isCloseTag) {
+              currStrike = content;
+            }
+            if (tagName === "p" && !isCloseTag) {
+              currPrice = content;
+            }
+            if (tagName === "priceScan" && !isCloseTag) {
+              currPriceScanRange = content;
+            }
+            if (tagName === "o" && !isCloseTag) {
+              currType = content === "C" ? "CE" : "PE";
+            }
+            if (tagName === "d" && !isCloseTag && !inRiskArray) {
+              currDelta = content;
+            }
+            if (tagName === "ra" && !isCloseTag) {
+              inRiskArray = true;
+              riskArrayValues = [];
+            }
+            if (tagName === "a" && !isCloseTag && inRiskArray) {
+              riskArrayValues.push(content);
+            }
+            if (tagName === "ra" && isCloseTag) {
+              inRiskArray = false;
+              if (riskArrayValues.length >= 16) {
+                const row = {
+                  Symbol: currSymbol,
+                  Expiry: currExpiry,
+                  Type: currType,
+                  Strike: currStrike,
+                  Price: currPrice,
+                  Price_Scan_Range: currPriceScanRange,
+                  Delta: currDelta,
+                };
+                for (let index = 0; index < 16; index += 1) {
+                  row[`Scenario_${index + 1}`] = riskArrayValues[index];
+                }
+                rows.push(row);
+              }
+            }
+
+            match = tagPattern.exec(text);
+          }
+
+          return rows;
+        }
+
+        async function handleSpanFileSelection() {
+          const file = elements.spanFileInput.files && elements.spanFileInput.files[0];
+          if (!file) {
+            resetSpanExtract(false);
+            return;
+          }
+          elements.spanFileInput.value = "";
+
+          currentSpanRows = [];
+          currentSpanMeta = {
+            sourceName: file.name,
+            innerName: "Reading file...",
+            mode: file.name.toLowerCase().endsWith(".zip") ? "ZIP" : "SPN",
+          };
+          updateSpanSummary(currentSpanMeta, 0);
+          renderSpanPreviewRows([]);
+          elements.downloadSpanCsvButton.disabled = true;
+          elements.clearSpanButton.disabled = false;
+          setSpanStatus(`Reading ${file.name}...`, "is-working");
+
+          await new Promise((resolve) => window.setTimeout(resolve, 0));
+
+          try {
+            const source = await readSpanFile(file);
+            const rows = parseSpanText(source.text);
+            currentSpanRows = rows;
+            currentSpanMeta = source;
+            updateSpanSummary(currentSpanMeta, rows.length);
+            renderSpanPreviewRows(rows);
+            elements.downloadSpanCsvButton.disabled = rows.length === 0;
+            elements.clearSpanButton.disabled = false;
+            setSpanStatus(
+              rows.length
+                ? `Parsed ${rows.length} SPAN rows from ${source.innerName}.`
+                : `Parsed ${source.innerName}, but no complete risk-array rows were found.`,
+              rows.length ? "is-ready" : ""
+            );
+          } catch (error) {
+            currentSpanRows = [];
+            updateSpanSummary({
+              sourceName: file.name,
+              innerName: "Parse failed",
+              mode: file.name.toLowerCase().endsWith(".zip") ? "ZIP" : "SPN",
+            }, 0);
+            renderSpanPreviewRows([]);
+            elements.downloadSpanCsvButton.disabled = true;
+            elements.clearSpanButton.disabled = false;
+            setSpanStatus(error && error.message ? error.message : "Could not parse the uploaded SPAN file.", "is-error");
+          }
         }
 
         function formatFormulaNumber(value) {
@@ -1711,6 +2236,7 @@
           clearRms();
           scratchpadEntries = [];
           elements.scratchpadInput.value = "";
+          resetSpanExtract();
           renderScratchpad();
         }
 
@@ -2170,6 +2696,9 @@
         elements.toggleProofButton.addEventListener("click", () => applyProofCollapsed(!elements.proofContent.hidden));
         elements.exportProofButton.addEventListener("click", exportProofCsv);
         elements.exportScratchpadButton.addEventListener("click", exportScratchpadCsv);
+        elements.downloadSpanCsvButton.addEventListener("click", exportSpanCsv);
+        elements.clearSpanButton.addEventListener("click", () => resetSpanExtract());
+        elements.spanFileInput.addEventListener("change", handleSpanFileSelection);
         elements.darkModeToggle.addEventListener("click", () => applyTheme(!document.body.classList.contains("theme-dark")));
         elements.shortcutsToggle.addEventListener("click", openShortcuts);
         elements.closeShortcutsButton.addEventListener("click", closeShortcuts);
@@ -2289,6 +2818,8 @@
         });
 
         loadState();
+        renderSpanTableHead();
+        resetSpanExtract(false);
         resetMetrics();
         renderScratchpad();
         renderScratchpadPreview();
