@@ -749,6 +749,35 @@
         margin-top: 18px;
       }
 
+      .span-preview-filter-bar {
+        margin-top: 14px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        background: var(--panel-soft);
+        padding: 14px;
+      }
+
+      .span-preview-filter-grid {
+        display: grid;
+        grid-template-columns: minmax(220px, 2.2fr) minmax(150px, 1fr) minmax(180px, 1.4fr) minmax(150px, 1fr) auto;
+        gap: 12px;
+        align-items: end;
+      }
+
+      .span-preview-filter-bar .span-filter-label {
+        margin-bottom: 6px;
+        font-size: 0.74rem;
+      }
+
+      .span-preview-filter-bar .span-filter-input,
+      .span-preview-filter-bar .span-filter-select {
+        padding: 10px 12px;
+      }
+
+      .span-preview-clear {
+        white-space: nowrap;
+      }
+
       .span-filter-shell {
         margin-top: 18px;
         border: 1px solid var(--border);
@@ -966,6 +995,7 @@
         .scratchpad-toolbar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         .scratchpad-live-row { flex-direction: column; align-items: stretch; }
         .span-filter-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .span-preview-filter-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       }
 
       @media (max-width: 820px) {
@@ -1017,7 +1047,8 @@
         .funds-input { min-height: 300px; }
         .running-total { align-items: flex-start; flex-direction: column; }
         .span-filter-grid,
-        .span-range-row { grid-template-columns: 1fr; }
+        .span-range-row,
+        .span-preview-filter-grid { grid-template-columns: 1fr; }
       }
     </style>
   </head>
@@ -1336,6 +1367,34 @@
             </div>
           </div>
 
+          <div class="span-preview-filter-bar">
+            <div class="span-preview-filter-grid">
+              <div class="span-filter-field">
+                <label class="span-filter-label" for="spanPreviewSymbolFilter">Quick Symbol</label>
+                <input id="spanPreviewSymbolFilter" class="span-filter-input" type="text" placeholder="Type contract or underlying" autocomplete="off" spellcheck="false">
+              </div>
+              <div class="span-filter-field">
+                <label class="span-filter-label" for="spanPreviewTypeFilter">Quick Type</label>
+                <select id="spanPreviewTypeFilter" class="span-filter-select">
+                  <option value="">All</option>
+                  <option value="FUT">FUT</option>
+                  <option value="OPT">OPT</option>
+                  <option value="CE">CE</option>
+                  <option value="PE">PE</option>
+                </select>
+              </div>
+              <div class="span-filter-field">
+                <label class="span-filter-label" for="spanPreviewExpiryFilter">Quick Expiry</label>
+                <input id="spanPreviewExpiryFilter" class="span-filter-input" type="text" placeholder="Expiry or partial match">
+              </div>
+              <div class="span-filter-field">
+                <label class="span-filter-label" for="spanPreviewStrikeFilter">Quick Strike</label>
+                <input id="spanPreviewStrikeFilter" class="span-filter-input" type="number" inputmode="decimal" step="any" placeholder="Exact strike">
+              </div>
+              <button id="spanPreviewClearButton" class="btn btn-secondary span-preview-clear" type="button">Clear Filters</button>
+            </div>
+          </div>
+
           <div class="table-shell">
             <table class="span-table">
               <thead id="spanTableHead"></thead>
@@ -1493,6 +1552,11 @@
           spanTypeAutoBadge: document.getElementById("spanTypeAutoBadge"),
           spanExpiryAutoBadge: document.getElementById("spanExpiryAutoBadge"),
           spanStrikeAutoBadge: document.getElementById("spanStrikeAutoBadge"),
+          spanPreviewSymbolFilter: document.getElementById("spanPreviewSymbolFilter"),
+          spanPreviewTypeFilter: document.getElementById("spanPreviewTypeFilter"),
+          spanPreviewExpiryFilter: document.getElementById("spanPreviewExpiryFilter"),
+          spanPreviewStrikeFilter: document.getElementById("spanPreviewStrikeFilter"),
+          spanPreviewClearButton: document.getElementById("spanPreviewClearButton"),
         };
 
         function escapeRegex(value) {
@@ -1980,6 +2044,7 @@
         }
 
         function applySpanFilters() {
+          syncSpanPreviewFilters();
           if (!currentSpanRows.length) {
             currentSpanFilteredRows = [];
             renderSpanPreviewRows([], elements.spanSymbolFilter.value, 0);
@@ -2048,6 +2113,15 @@
           elements.spanModeValue.textContent = meta && meta.mode ? meta.mode : "-";
         }
 
+        function syncSpanPreviewFilters() {
+          elements.spanPreviewSymbolFilter.value = elements.spanSymbolFilter.value;
+          elements.spanPreviewTypeFilter.value = elements.spanTypeFilter.value;
+          elements.spanPreviewExpiryFilter.value = elements.spanExpiryFilter.value;
+          const strikeMin = String(elements.spanStrikeMinFilter.value || "").trim();
+          const strikeMax = String(elements.spanStrikeMaxFilter.value || "").trim();
+          elements.spanPreviewStrikeFilter.value = strikeMin && strikeMin === strikeMax ? strikeMin : "";
+        }
+
         function resetSpanFilters() {
           elements.spanSymbolFilter.value = "";
           elements.spanTypeFilter.value = "";
@@ -2062,6 +2136,7 @@
           elements.spanDeltaMaxFilter.value = "";
           clearSpanAutoFields();
           renderSpanParsedTags(null);
+          syncSpanPreviewFilters();
         }
 
         function resetSpanExtract(resetInput = true) {
@@ -3383,6 +3458,28 @@
           applySpanFilters();
         }
 
+        function handleSpanPreviewSymbolInput() {
+          elements.spanSymbolFilter.value = elements.spanPreviewSymbolFilter.value;
+          handleSpanSymbolFilterInput();
+        }
+
+        function handleSpanPreviewTypeChange() {
+          elements.spanTypeFilter.value = elements.spanPreviewTypeFilter.value;
+          handleManualSpanFilterChange("type");
+        }
+
+        function handleSpanPreviewExpiryInput() {
+          elements.spanExpiryFilter.value = elements.spanPreviewExpiryFilter.value;
+          handleManualSpanFilterChange("expiry");
+        }
+
+        function handleSpanPreviewStrikeInput() {
+          const value = String(elements.spanPreviewStrikeFilter.value || "").trim();
+          elements.spanStrikeMinFilter.value = value;
+          elements.spanStrikeMaxFilter.value = value;
+          handleManualSpanFilterChange("strike");
+        }
+
         async function tryAutoPaste() {
           if (elements.fundsInput.value.trim() || !window.isSecureContext || !navigator.clipboard || !navigator.clipboard.readText) {
             return;
@@ -3431,6 +3528,14 @@
         elements.spanExpiryFilter.addEventListener("input", () => handleManualSpanFilterChange("expiry"));
         elements.spanStrikeMinFilter.addEventListener("input", () => handleManualSpanFilterChange("strike"));
         elements.spanStrikeMaxFilter.addEventListener("input", () => handleManualSpanFilterChange("strike"));
+        elements.spanPreviewSymbolFilter.addEventListener("input", handleSpanPreviewSymbolInput);
+        elements.spanPreviewTypeFilter.addEventListener("change", handleSpanPreviewTypeChange);
+        elements.spanPreviewExpiryFilter.addEventListener("input", handleSpanPreviewExpiryInput);
+        elements.spanPreviewStrikeFilter.addEventListener("input", handleSpanPreviewStrikeInput);
+        elements.spanPreviewClearButton.addEventListener("click", () => {
+          resetSpanFilters();
+          applySpanFilters();
+        });
         elements.spanPriceMinFilter.addEventListener("input", applySpanFilters);
         elements.spanPriceMaxFilter.addEventListener("input", applySpanFilters);
         elements.spanPriceScanMinFilter.addEventListener("input", applySpanFilters);
