@@ -749,6 +749,103 @@
         margin-top: 18px;
       }
 
+      .span-filter-shell {
+        margin-top: 18px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        background: var(--panel-soft);
+        padding: 18px;
+      }
+
+      .span-filter-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 14px;
+      }
+
+      .span-filter-field {
+        min-width: 0;
+      }
+
+      .span-filter-label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 8px;
+        color: var(--muted);
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .auto-fill-badge {
+        display: inline-flex;
+        align-items: center;
+        border-radius: 999px;
+        background: rgba(255, 75, 75, 0.12);
+        color: var(--accent);
+        padding: 3px 8px;
+        font-size: 0.68rem;
+        letter-spacing: 0.04em;
+      }
+
+      .auto-fill-badge[hidden] {
+        display: none;
+      }
+
+      .span-filter-input,
+      .span-filter-select {
+        width: 100%;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        background: var(--panel);
+        color: var(--text);
+        padding: 12px 13px;
+      }
+
+      .span-filter-input:focus,
+      .span-filter-select:focus {
+        outline: 2px solid rgba(255, 75, 75, 0.22);
+        border-color: rgba(255, 75, 75, 0.45);
+      }
+
+      .span-range-row {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .span-parse-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 14px;
+      }
+
+      .span-parse-tags[hidden] {
+        display: none;
+      }
+
+      .span-parse-tag {
+        display: inline-flex;
+        align-items: center;
+        border: 1px solid rgba(255, 75, 75, 0.18);
+        border-radius: 999px;
+        background: var(--panel);
+        color: var(--text);
+        padding: 7px 10px;
+        font-size: 0.82rem;
+        font-weight: 700;
+      }
+
+      .span-highlight {
+        border-radius: 6px;
+        background: rgba(255, 75, 75, 0.16);
+        color: inherit;
+        padding: 1px 2px;
+      }
+
       .span-table {
         width: 100%;
         min-width: 1800px;
@@ -854,6 +951,7 @@
         .metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         .scratchpad-toolbar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         .scratchpad-live-row { flex-direction: column; align-items: stretch; }
+        .span-filter-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       }
 
       @media (max-width: 820px) {
@@ -904,6 +1002,8 @@
         }
         .funds-input { min-height: 300px; }
         .running-total { align-items: flex-start; flex-direction: column; }
+        .span-filter-grid,
+        .span-range-row { grid-template-columns: 1fr; }
       }
     </style>
   </head>
@@ -1113,7 +1213,7 @@
             </div>
             <div class="section-actions">
               <button id="downloadSpanCsvButton" class="btn btn-secondary" type="button" disabled>Download CSV</button>
-              <button id="clearSpanButton" class="btn btn-secondary" type="button" disabled>Clear</button>
+              <button id="clearSpanButton" class="btn btn-secondary" type="button" disabled>Clear All</button>
             </div>
           </div>
 
@@ -1145,6 +1245,74 @@
           </div>
 
           <div id="spanStatus" class="span-status">Choose a SPAN file to parse. Results stay local in your browser.</div>
+
+          <div class="span-filter-shell">
+            <div class="span-filter-grid">
+              <div class="span-filter-field">
+                <label class="span-filter-label" for="spanSymbolFilter">Symbol Search</label>
+                <input id="spanSymbolFilter" class="span-filter-input" type="text" placeholder="NIFTY2620325500CE or CRUDEOIL26APRFUT" autocomplete="off" spellcheck="false">
+              </div>
+
+              <div class="span-filter-field">
+                <label class="span-filter-label" for="spanTypeFilter">
+                  Type
+                  <span id="spanTypeAutoBadge" class="auto-fill-badge" hidden>Auto-filled</span>
+                </label>
+                <select id="spanTypeFilter" class="span-filter-select">
+                  <option value="">All</option>
+                  <option value="FUT">FUT</option>
+                  <option value="OPT">OPT</option>
+                  <option value="CE">CE</option>
+                  <option value="PE">PE</option>
+                </select>
+              </div>
+
+              <div class="span-filter-field">
+                <label class="span-filter-label" for="spanExpiryFilter">
+                  Expiry
+                  <span id="spanExpiryAutoBadge" class="auto-fill-badge" hidden>Auto-filled</span>
+                </label>
+                <input id="spanExpiryFilter" class="span-filter-input" type="text" placeholder="APR 2026 or partial expiry">
+              </div>
+
+              <div class="span-filter-field">
+                <label class="span-filter-label" for="spanStrikeMinFilter">
+                  Strike Range
+                  <span id="spanStrikeAutoBadge" class="auto-fill-badge" hidden>Auto-filled</span>
+                </label>
+                <div class="span-range-row">
+                  <input id="spanStrikeMinFilter" class="span-filter-input" type="number" inputmode="decimal" step="any" placeholder="Min">
+                  <input id="spanStrikeMaxFilter" class="span-filter-input" type="number" inputmode="decimal" step="any" placeholder="Max">
+                </div>
+              </div>
+
+              <div class="span-filter-field">
+                <label class="span-filter-label" for="spanPriceMinFilter">Price Range</label>
+                <div class="span-range-row">
+                  <input id="spanPriceMinFilter" class="span-filter-input" type="number" inputmode="decimal" step="any" placeholder="Min">
+                  <input id="spanPriceMaxFilter" class="span-filter-input" type="number" inputmode="decimal" step="any" placeholder="Max">
+                </div>
+              </div>
+
+              <div class="span-filter-field">
+                <label class="span-filter-label" for="spanPriceScanMinFilter">Price Scan Range</label>
+                <div class="span-range-row">
+                  <input id="spanPriceScanMinFilter" class="span-filter-input" type="number" inputmode="decimal" step="any" placeholder="Min">
+                  <input id="spanPriceScanMaxFilter" class="span-filter-input" type="number" inputmode="decimal" step="any" placeholder="Max">
+                </div>
+              </div>
+
+              <div class="span-filter-field">
+                <label class="span-filter-label" for="spanDeltaMinFilter">Delta Range</label>
+                <div class="span-range-row">
+                  <input id="spanDeltaMinFilter" class="span-filter-input" type="number" inputmode="decimal" step="any" placeholder="Min">
+                  <input id="spanDeltaMaxFilter" class="span-filter-input" type="number" inputmode="decimal" step="any" placeholder="Max">
+                </div>
+              </div>
+            </div>
+
+            <div id="spanParsedTags" class="span-parse-tags" hidden></div>
+          </div>
 
           <div class="span-preview-head">
             <div>
@@ -1214,14 +1382,37 @@
           "Delta",
           ...Array.from({ length: 16 }, (_, index) => `Scenario_${index + 1}`),
         ];
+        const SPAN_RENDER_LIMIT = 400;
+        const MONTH_CODE_MAP = {
+          "1": { abbr: "JAN", number: "01" },
+          "2": { abbr: "FEB", number: "02" },
+          "3": { abbr: "MAR", number: "03" },
+          "4": { abbr: "APR", number: "04" },
+          "5": { abbr: "MAY", number: "05" },
+          "6": { abbr: "JUN", number: "06" },
+          "7": { abbr: "JUL", number: "07" },
+          "8": { abbr: "AUG", number: "08" },
+          "9": { abbr: "SEP", number: "09" },
+          O: { abbr: "OCT", number: "10" },
+          N: { abbr: "NOV", number: "11" },
+          D: { abbr: "DEC", number: "12" },
+        };
+        const MONTH_ABBR_SET = new Set(["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"]);
 
         let scratchpadEntries = [];
         let currentProofRows = [];
         let currentRmsResult = null;
         let currentSpanRows = [];
+        let currentSpanFilteredRows = [];
         let currentSpanMeta = null;
         let autoCalculateTimer = 0;
         const scratchpadHistory = [];
+        const spanAutoState = {
+          type: false,
+          expiry: false,
+          strike: false,
+        };
+        let currentParsedSpanSymbol = null;
 
         const elements = {
           darkModeToggle: document.getElementById("darkModeToggle"),
@@ -1272,6 +1463,21 @@
           spanPreviewCopy: document.getElementById("spanPreviewCopy"),
           spanTableHead: document.getElementById("spanTableHead"),
           spanTableBody: document.getElementById("spanTableBody"),
+          spanSymbolFilter: document.getElementById("spanSymbolFilter"),
+          spanTypeFilter: document.getElementById("spanTypeFilter"),
+          spanExpiryFilter: document.getElementById("spanExpiryFilter"),
+          spanStrikeMinFilter: document.getElementById("spanStrikeMinFilter"),
+          spanStrikeMaxFilter: document.getElementById("spanStrikeMaxFilter"),
+          spanPriceMinFilter: document.getElementById("spanPriceMinFilter"),
+          spanPriceMaxFilter: document.getElementById("spanPriceMaxFilter"),
+          spanPriceScanMinFilter: document.getElementById("spanPriceScanMinFilter"),
+          spanPriceScanMaxFilter: document.getElementById("spanPriceScanMaxFilter"),
+          spanDeltaMinFilter: document.getElementById("spanDeltaMinFilter"),
+          spanDeltaMaxFilter: document.getElementById("spanDeltaMaxFilter"),
+          spanParsedTags: document.getElementById("spanParsedTags"),
+          spanTypeAutoBadge: document.getElementById("spanTypeAutoBadge"),
+          spanExpiryAutoBadge: document.getElementById("spanExpiryAutoBadge"),
+          spanStrikeAutoBadge: document.getElementById("spanStrikeAutoBadge"),
         };
 
         function escapeRegex(value) {
@@ -1324,6 +1530,295 @@
           return `"${String(value ?? "").replaceAll('"', '""')}"`;
         }
 
+        function padTwo(value) {
+          return String(value || "").padStart(2, "0");
+        }
+
+        function normalizeCompact(value) {
+          return String(value || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+        }
+
+        function getNumericInputValue(input) {
+          const text = String(input && input.value || "").replaceAll(",", "").trim();
+          if (!text) {
+            return null;
+          }
+          const numeric = Number(text);
+          return Number.isFinite(numeric) ? numeric : null;
+        }
+
+        function setSpanAutoBadge(field, enabled) {
+          spanAutoState[field] = Boolean(enabled);
+          if (field === "type") {
+            elements.spanTypeAutoBadge.hidden = !enabled;
+          } else if (field === "expiry") {
+            elements.spanExpiryAutoBadge.hidden = !enabled;
+          } else if (field === "strike") {
+            elements.spanStrikeAutoBadge.hidden = !enabled;
+          }
+        }
+
+        function clearSpanAutoField(field) {
+          if (field === "type" && spanAutoState.type) {
+            elements.spanTypeFilter.value = "";
+            setSpanAutoBadge("type", false);
+          }
+          if (field === "expiry" && spanAutoState.expiry) {
+            elements.spanExpiryFilter.value = "";
+            setSpanAutoBadge("expiry", false);
+          }
+          if (field === "strike" && spanAutoState.strike) {
+            elements.spanStrikeMinFilter.value = "";
+            elements.spanStrikeMaxFilter.value = "";
+            setSpanAutoBadge("strike", false);
+          }
+        }
+
+        function clearSpanAutoFields() {
+          clearSpanAutoField("type");
+          clearSpanAutoField("expiry");
+          clearSpanAutoField("strike");
+        }
+
+        function renderSpanParsedTags(parsed) {
+          currentParsedSpanSymbol = parsed;
+          if (!parsed) {
+            elements.spanParsedTags.hidden = true;
+            elements.spanParsedTags.innerHTML = "";
+            return;
+          }
+
+          const tags = [
+            parsed.underlying,
+            parsed.expiryLabel,
+            parsed.instrumentTag,
+            parsed.optionLabel,
+            Number.isFinite(parsed.strike) ? `Strike: ${parsed.strike}` : "",
+          ].filter(Boolean);
+
+          elements.spanParsedTags.hidden = tags.length === 0;
+          elements.spanParsedTags.innerHTML = tags.map((tag) => `<span class="span-parse-tag">${escapeHtml(tag)}</span>`).join("");
+        }
+
+        function getMonthFromCode(code) {
+          return MONTH_CODE_MAP[String(code || "").toUpperCase()] || null;
+        }
+
+        function getMonthFromAbbr(abbr) {
+          const target = String(abbr || "").toUpperCase();
+          const match = Object.values(MONTH_CODE_MAP).find((month) => month.abbr === target);
+          return match || null;
+        }
+
+        function parseSmartSpanSymbol(rawInput) {
+          const raw = String(rawInput || "").toUpperCase().trim().replace(/\s+/g, " ");
+          if (!raw) {
+            return null;
+          }
+
+          let match = raw.match(/^([A-Z]+)(\d{2})([1-9OND])(\d{2})(\d+)(CE|PE)$/i);
+          if (match) {
+            const month = getMonthFromCode(match[3]);
+            if (!month) {
+              return null;
+            }
+            const year = 2000 + Number(match[2]);
+            const day = padTwo(match[4]);
+            const strike = Number(match[5]);
+            const optionType = match[6].toUpperCase();
+            return {
+              pattern: "index-option",
+              underlying: match[1],
+              year,
+              year2: match[2],
+              monthAbbr: month.abbr,
+              monthNumber: month.number,
+              monthCode: String(match[3]).toUpperCase(),
+              day,
+              strike,
+              filterType: "OPT",
+              instrumentTag: "OPT",
+              optionLabel: optionType === "CE" ? "CALL" : "PUT",
+              optionType,
+              expiryLabel: `${day} ${month.abbr} ${year}`,
+            };
+          }
+
+          match = raw.match(/^([A-Z]+)(\d{2})(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)(\d+)(CE|PE)$/i);
+          if (match) {
+            const year = 2000 + Number(match[2]);
+            const monthAbbr = match[3].toUpperCase();
+            const strike = Number(match[4]);
+            const optionType = match[5].toUpperCase();
+            return {
+              pattern: "equity-option",
+              underlying: match[1],
+              year,
+              year2: match[2],
+              monthAbbr,
+              monthNumber: (getMonthFromAbbr(monthAbbr) || {}).number || "",
+              strike,
+              filterType: "OPT",
+              instrumentTag: "OPT",
+              optionLabel: optionType === "CE" ? "CALL" : "PUT",
+              optionType,
+              expiryLabel: `${monthAbbr} ${year}`,
+            };
+          }
+
+          match = raw.match(/^([A-Z]+)\s*((?:\d{2})?)(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)\s*FUT$/i);
+          if (match) {
+            const year2 = match[2] || "";
+            const year = year2 ? 2000 + Number(year2) : null;
+            const monthAbbr = match[3].toUpperCase();
+            return {
+              pattern: "future",
+              underlying: match[1],
+              year,
+              year2,
+              monthAbbr,
+              monthNumber: (getMonthFromAbbr(monthAbbr) || {}).number || "",
+              filterType: "FUT",
+              instrumentTag: "FUT",
+              optionLabel: "",
+              expiryLabel: year ? `${monthAbbr} ${year}` : `${monthAbbr}`,
+            };
+          }
+
+          match = raw.match(/^([A-Z]+)(\d{2})([1-9OND])(\d{2})FUT$/i);
+          if (match) {
+            const month = getMonthFromCode(match[3]);
+            if (!month) {
+              return null;
+            }
+            const year = 2000 + Number(match[2]);
+            const day = padTwo(match[4]);
+            return {
+              pattern: "weekly-future",
+              underlying: match[1],
+              year,
+              year2: match[2],
+              monthAbbr: month.abbr,
+              monthNumber: month.number,
+              monthCode: String(match[3]).toUpperCase(),
+              day,
+              filterType: "FUT",
+              instrumentTag: "FUT",
+              optionLabel: "",
+              expiryLabel: `${day} ${month.abbr} ${year}`,
+            };
+          }
+
+          match = raw.match(/^([A-Z]+)(\d{2})(\d{1,2})([1-9OND])(\d{1,2})FUT$/i);
+          if (match) {
+            const month = getMonthFromCode(match[4]);
+            if (!month) {
+              return null;
+            }
+            const year = 2000 + Number(match[2]);
+            const firstDay = padTwo(match[3]);
+            const secondDay = padTwo(match[5]);
+            return {
+              pattern: "weekly-future",
+              underlying: match[1],
+              year,
+              year2: match[2],
+              monthAbbr: month.abbr,
+              monthNumber: month.number,
+              monthCode: String(match[4]).toUpperCase(),
+              day: firstDay,
+              extraDay: secondDay,
+              filterType: "FUT",
+              instrumentTag: "FUT",
+              optionLabel: "",
+              expiryLabel: `${firstDay} ${month.abbr} ${year}`,
+            };
+          }
+
+          return null;
+        }
+
+        function applyParsedSpanAutoFill(parsed) {
+          if (!parsed) {
+            clearSpanAutoFields();
+            renderSpanParsedTags(null);
+            return;
+          }
+
+          renderSpanParsedTags(parsed);
+          elements.spanTypeFilter.value = parsed.filterType || "";
+          setSpanAutoBadge("type", Boolean(parsed.filterType));
+
+          elements.spanExpiryFilter.value = parsed.expiryLabel || "";
+          setSpanAutoBadge("expiry", Boolean(parsed.expiryLabel));
+
+          if (Number.isFinite(parsed.strike)) {
+            elements.spanStrikeMinFilter.value = String(parsed.strike - 500);
+            elements.spanStrikeMaxFilter.value = String(parsed.strike + 500);
+            setSpanAutoBadge("strike", true);
+          } else {
+            clearSpanAutoField("strike");
+          }
+        }
+
+        function rowMatchesParsedExpiry(expiry, parsed) {
+          if (!parsed) {
+            return true;
+          }
+
+          const value = normalizeCompact(expiry);
+          if (!value) {
+            return false;
+          }
+
+          const year4 = String(parsed.year || "");
+          const year2 = String(parsed.year2 || "");
+          if (year4 && !(value.includes(year4) || (year2 && value.includes(year2)))) {
+            return false;
+          }
+
+          if (parsed.monthAbbr && !(value.includes(parsed.monthAbbr) || (parsed.monthNumber && value.includes(parsed.monthNumber)) || (parsed.monthCode && value.includes(parsed.monthCode)))) {
+            return false;
+          }
+
+          if (parsed.day) {
+            const day = padTwo(parsed.day);
+            const compactDay = String(Number(day));
+            const extraDay = parsed.extraDay ? padTwo(parsed.extraDay) : "";
+            const extraCompactDay = extraDay ? String(Number(extraDay)) : "";
+            if (!(value.includes(day) || value.includes(compactDay) || (extraDay && (value.includes(extraDay) || value.includes(extraCompactDay))))) {
+              return false;
+            }
+          }
+
+          return true;
+        }
+
+        function highlightSpanSymbol(symbol, query) {
+          const text = String(symbol || "");
+          const needle = String(query || "").trim();
+          if (!needle) {
+            return escapeHtml(text);
+          }
+
+          const regex = new RegExp(escapeRegex(needle), "ig");
+          let result = "";
+          let lastIndex = 0;
+          let match = regex.exec(text);
+
+          while (match) {
+            const start = match.index;
+            const end = start + match[0].length;
+            result += escapeHtml(text.slice(lastIndex, start));
+            result += `<mark class="span-highlight">${escapeHtml(text.slice(start, end))}</mark>`;
+            lastIndex = end;
+            match = regex.exec(text);
+          }
+
+          result += escapeHtml(text.slice(lastIndex));
+          return result;
+        }
+
         function renderSpanTableHead() {
           elements.spanTableHead.innerHTML = `<tr>${SPAN_HEADERS.map((header) => `<th>${escapeHtml(header)}</th>`).join("")}</tr>`;
         }
@@ -1333,23 +1828,116 @@
           elements.spanStatus.textContent = message;
         }
 
-        function renderSpanPreviewRows(rows) {
-          const previewLimit = 60;
-          if (!rows.length) {
-            elements.spanPreviewCopy.textContent = "The extracted table will appear here after parsing.";
-            elements.spanTableBody.innerHTML = '<tr class="span-empty"><td colspan="23">Upload an nsccl*.spn or .zip file to preview extracted SPAN rows.</td></tr>';
+        function renderSpanPreviewRows(rows, query = "", totalRows = rows.length) {
+          const shownCount = Math.min(rows.length, SPAN_RENDER_LIMIT);
+          if (!totalRows) {
+            if (currentSpanMeta) {
+              elements.spanPreviewCopy.textContent = "No complete SPAN rows are available to preview for this file.";
+              elements.spanTableBody.innerHTML = '<tr class="span-empty"><td colspan="23">This file was read, but no complete risk-array rows were extracted.</td></tr>';
+            } else {
+              elements.spanPreviewCopy.textContent = "The extracted table will appear here after parsing.";
+              elements.spanTableBody.innerHTML = '<tr class="span-empty"><td colspan="23">Upload an nsccl*.spn or .zip file to preview extracted SPAN rows.</td></tr>';
+            }
             return;
           }
 
-          const previewRows = rows.slice(0, previewLimit);
-          elements.spanPreviewCopy.textContent = rows.length > previewLimit
-            ? `Showing the first ${previewLimit} of ${rows.length} extracted rows. Download CSV for the full export.`
-            : `Showing all ${rows.length} extracted rows.`;
+          if (!rows.length) {
+            elements.spanPreviewCopy.textContent = `Showing 0 of ${totalRows} rows. Adjust the filters to widen the result.`;
+            elements.spanTableBody.innerHTML = '<tr class="span-empty"><td colspan="23">No SPAN rows match the current filters.</td></tr>';
+            return;
+          }
+
+          const previewRows = rows.slice(0, SPAN_RENDER_LIMIT);
+          const filterNote = totalRows !== rows.length ? ` filtered from ${totalRows}` : "";
+          const limitNote = rows.length > SPAN_RENDER_LIMIT ? ` Showing the first ${shownCount} visible rows for speed.` : "";
+          elements.spanPreviewCopy.textContent = `Showing ${shownCount} of ${rows.length} rows${filterNote}.${limitNote}`;
           elements.spanTableBody.innerHTML = previewRows.map((row) => `
             <tr>
-              ${SPAN_HEADERS.map((header) => `<td>${escapeHtml(row[header] ?? "")}</td>`).join("")}
+              ${SPAN_HEADERS.map((header) => `<td>${header === "Symbol" ? highlightSpanSymbol(row[header] ?? "", query) : escapeHtml(row[header] ?? "")}</td>`).join("")}
             </tr>
           `).join("");
+        }
+
+        function rowMatchesTypeFilter(rowType, filterType) {
+          const normalizedRowType = String(rowType || "").toUpperCase();
+          const normalizedFilter = String(filterType || "").toUpperCase();
+          if (!normalizedFilter) {
+            return true;
+          }
+          if (normalizedFilter === "OPT") {
+            return normalizedRowType === "CE" || normalizedRowType === "PE" || normalizedRowType === "OPT";
+          }
+          return normalizedRowType === normalizedFilter;
+        }
+
+        function rowMatchesNumberRange(value, minimum, maximum) {
+          const numeric = normaliseAmount(value);
+          if (minimum !== null && numeric < minimum) {
+            return false;
+          }
+          if (maximum !== null && numeric > maximum) {
+            return false;
+          }
+          return true;
+        }
+
+        function applySpanFilters() {
+          if (!currentSpanRows.length) {
+            currentSpanFilteredRows = [];
+            renderSpanPreviewRows([], elements.spanSymbolFilter.value, 0);
+            elements.downloadSpanCsvButton.disabled = true;
+            return;
+          }
+
+          const symbolQuery = elements.spanSymbolFilter.value.trim();
+          const expiryQuery = elements.spanExpiryFilter.value.trim();
+          const typeFilter = elements.spanTypeFilter.value;
+          const strikeMin = getNumericInputValue(elements.spanStrikeMinFilter);
+          const strikeMax = getNumericInputValue(elements.spanStrikeMaxFilter);
+          const priceMin = getNumericInputValue(elements.spanPriceMinFilter);
+          const priceMax = getNumericInputValue(elements.spanPriceMaxFilter);
+          const priceScanMin = getNumericInputValue(elements.spanPriceScanMinFilter);
+          const priceScanMax = getNumericInputValue(elements.spanPriceScanMaxFilter);
+          const deltaMin = getNumericInputValue(elements.spanDeltaMinFilter);
+          const deltaMax = getNumericInputValue(elements.spanDeltaMaxFilter);
+          const useParsedExpiry = spanAutoState.expiry && currentParsedSpanSymbol && normalizeCompact(expiryQuery) === normalizeCompact(currentParsedSpanSymbol.expiryLabel);
+          const normalizedSymbolQuery = symbolQuery.toUpperCase();
+          const normalizedExpiryQuery = normalizeCompact(expiryQuery);
+
+          currentSpanFilteredRows = currentSpanRows.filter((row) => {
+            const symbol = String(row.Symbol || "");
+            const expiry = String(row.Expiry || "");
+            if (normalizedSymbolQuery && !symbol.toUpperCase().includes(normalizedSymbolQuery)) {
+              return false;
+            }
+            if (!rowMatchesTypeFilter(row.Type, typeFilter)) {
+              return false;
+            }
+            if (expiryQuery) {
+              const expiryMatches = useParsedExpiry
+                ? rowMatchesParsedExpiry(expiry, currentParsedSpanSymbol)
+                : normalizeCompact(expiry).includes(normalizedExpiryQuery);
+              if (!expiryMatches) {
+                return false;
+              }
+            }
+            if (!rowMatchesNumberRange(row.Strike, strikeMin, strikeMax)) {
+              return false;
+            }
+            if (!rowMatchesNumberRange(row.Price, priceMin, priceMax)) {
+              return false;
+            }
+            if (!rowMatchesNumberRange(row.Price_Scan_Range, priceScanMin, priceScanMax)) {
+              return false;
+            }
+            if (!rowMatchesNumberRange(row.Delta, deltaMin, deltaMax)) {
+              return false;
+            }
+            return true;
+          });
+
+          renderSpanPreviewRows(currentSpanFilteredRows, symbolQuery, currentSpanRows.length);
+          elements.downloadSpanCsvButton.disabled = currentSpanFilteredRows.length === 0;
         }
 
         function updateSpanSummary(meta, rowsCount) {
@@ -1359,9 +1947,27 @@
           elements.spanModeValue.textContent = meta && meta.mode ? meta.mode : "-";
         }
 
+        function resetSpanFilters() {
+          elements.spanSymbolFilter.value = "";
+          elements.spanTypeFilter.value = "";
+          elements.spanExpiryFilter.value = "";
+          elements.spanStrikeMinFilter.value = "";
+          elements.spanStrikeMaxFilter.value = "";
+          elements.spanPriceMinFilter.value = "";
+          elements.spanPriceMaxFilter.value = "";
+          elements.spanPriceScanMinFilter.value = "";
+          elements.spanPriceScanMaxFilter.value = "";
+          elements.spanDeltaMinFilter.value = "";
+          elements.spanDeltaMaxFilter.value = "";
+          clearSpanAutoFields();
+          renderSpanParsedTags(null);
+        }
+
         function resetSpanExtract(resetInput = true) {
           currentSpanRows = [];
+          currentSpanFilteredRows = [];
           currentSpanMeta = null;
+          resetSpanFilters();
           updateSpanSummary(null, 0);
           renderSpanPreviewRows([]);
           setSpanStatus("Choose a SPAN file to parse. Results stay local in your browser.");
@@ -1381,12 +1987,14 @@
         }
 
         function exportSpanCsv() {
-          if (!currentSpanRows.length) {
-            alert("Upload and parse a SPAN file before exporting the CSV.");
+          if (!currentSpanFilteredRows.length) {
+            alert(currentSpanRows.length
+              ? "No SPAN rows match the current filters to export."
+              : "Upload and parse a SPAN file before exporting the CSV.");
             return;
           }
 
-          downloadCsvFile(buildSpanCsvLines(currentSpanRows), "Span_Risk_Data.csv");
+          downloadCsvFile(buildSpanCsvLines(currentSpanFilteredRows), "Span_Risk_Data.csv");
         }
 
         function decodeUtf8(bytes) {
@@ -1598,11 +2206,13 @@
           elements.spanFileInput.value = "";
 
           currentSpanRows = [];
+          currentSpanFilteredRows = [];
           currentSpanMeta = {
             sourceName: file.name,
             innerName: "Reading file...",
             mode: file.name.toLowerCase().endsWith(".zip") ? "ZIP" : "SPN",
           };
+          resetSpanFilters();
           updateSpanSummary(currentSpanMeta, 0);
           renderSpanPreviewRows([]);
           elements.downloadSpanCsvButton.disabled = true;
@@ -1617,8 +2227,7 @@
             currentSpanRows = rows;
             currentSpanMeta = source;
             updateSpanSummary(currentSpanMeta, rows.length);
-            renderSpanPreviewRows(rows);
-            elements.downloadSpanCsvButton.disabled = rows.length === 0;
+            applySpanFilters();
             elements.clearSpanButton.disabled = false;
             setSpanStatus(
               rows.length
@@ -1628,6 +2237,7 @@
             );
           } catch (error) {
             currentSpanRows = [];
+            currentSpanFilteredRows = [];
             updateSpanSummary({
               sourceName: file.name,
               innerName: "Parse failed",
@@ -2656,6 +3266,22 @@
           elements.scratchpadInput.focus();
         }
 
+        function handleSpanSymbolFilterInput() {
+          const parsed = parseSmartSpanSymbol(elements.spanSymbolFilter.value);
+          if (parsed) {
+            applyParsedSpanAutoFill(parsed);
+          } else {
+            clearSpanAutoFields();
+            renderSpanParsedTags(null);
+          }
+          applySpanFilters();
+        }
+
+        function handleManualSpanFilterChange(field) {
+          setSpanAutoBadge(field, false);
+          applySpanFilters();
+        }
+
         async function tryAutoPaste() {
           if (elements.fundsInput.value.trim() || !window.isSecureContext || !navigator.clipboard || !navigator.clipboard.readText) {
             return;
@@ -2699,6 +3325,17 @@
         elements.downloadSpanCsvButton.addEventListener("click", exportSpanCsv);
         elements.clearSpanButton.addEventListener("click", () => resetSpanExtract());
         elements.spanFileInput.addEventListener("change", handleSpanFileSelection);
+        elements.spanSymbolFilter.addEventListener("input", handleSpanSymbolFilterInput);
+        elements.spanTypeFilter.addEventListener("change", () => handleManualSpanFilterChange("type"));
+        elements.spanExpiryFilter.addEventListener("input", () => handleManualSpanFilterChange("expiry"));
+        elements.spanStrikeMinFilter.addEventListener("input", () => handleManualSpanFilterChange("strike"));
+        elements.spanStrikeMaxFilter.addEventListener("input", () => handleManualSpanFilterChange("strike"));
+        elements.spanPriceMinFilter.addEventListener("input", applySpanFilters);
+        elements.spanPriceMaxFilter.addEventListener("input", applySpanFilters);
+        elements.spanPriceScanMinFilter.addEventListener("input", applySpanFilters);
+        elements.spanPriceScanMaxFilter.addEventListener("input", applySpanFilters);
+        elements.spanDeltaMinFilter.addEventListener("input", applySpanFilters);
+        elements.spanDeltaMaxFilter.addEventListener("input", applySpanFilters);
         elements.darkModeToggle.addEventListener("click", () => applyTheme(!document.body.classList.contains("theme-dark")));
         elements.shortcutsToggle.addEventListener("click", openShortcuts);
         elements.closeShortcutsButton.addEventListener("click", closeShortcuts);
