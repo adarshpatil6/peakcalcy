@@ -749,55 +749,6 @@
         margin-top: 18px;
       }
 
-      .span-filter-shell {
-        margin-top: 14px;
-        border: 1px solid var(--border);
-        border-radius: var(--radius-lg);
-        background: var(--panel-soft);
-        padding: 14px;
-      }
-
-      .span-filter-grid {
-        display: grid;
-        grid-template-columns:
-          minmax(220px, 2fr)
-          minmax(110px, 0.8fr)
-          minmax(170px, 1.15fr)
-          minmax(180px, 1.25fr)
-          minmax(180px, 1.25fr)
-          minmax(180px, 1.25fr)
-          minmax(180px, 1.25fr)
-          auto;
-        gap: 10px;
-        align-items: end;
-      }
-
-      .span-filter-field {
-        min-width: 0;
-      }
-
-      .span-filter-label {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        margin-bottom: 8px;
-        color: var(--muted);
-        font-size: 0.78rem;
-        font-weight: 700;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-      }
-
-      .span-filter-label.tight {
-        margin-bottom: 6px;
-        font-size: 0.74rem;
-      }
-
-      .span-filter-action {
-        align-self: end;
-        white-space: nowrap;
-      }
-
       .auto-fill-badge {
         display: inline-flex;
         align-items: center;
@@ -832,7 +783,7 @@
       .span-range-row {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 10px;
+        gap: 6px;
       }
 
       .span-parse-tags {
@@ -887,6 +838,33 @@
         font-weight: 700;
         letter-spacing: 0.08em;
         text-transform: uppercase;
+      }
+
+      .span-filter-row th {
+        background: var(--panel);
+        padding: 8px 10px 10px;
+        vertical-align: top;
+      }
+
+      .span-filter-row .span-filter-input,
+      .span-filter-row .span-filter-select {
+        padding: 8px 10px;
+        font-size: 0.82rem;
+      }
+
+      .span-filter-row .span-filter-input::placeholder {
+        color: var(--muted);
+      }
+
+      .span-filter-spacer {
+        min-width: 180px;
+      }
+
+      .span-filter-clear-btn {
+        display: inline-flex;
+        justify-content: center;
+        align-items: center;
+        min-width: 120px;
       }
 
       .span-table td {
@@ -984,7 +962,6 @@
         .metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         .scratchpad-toolbar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         .scratchpad-live-row { flex-direction: column; align-items: stretch; }
-        .span-filter-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
       }
 
       @media (max-width: 820px) {
@@ -1035,7 +1012,6 @@
         }
         .funds-input { min-height: 300px; }
         .running-total { align-items: flex-start; flex-direction: column; }
-        .span-filter-grid,
         .span-range-row { grid-template-columns: 1fr; }
       }
     </style>
@@ -1286,79 +1262,75 @@
             </div>
           </div>
 
-          <div class="span-filter-shell">
-            <div class="span-filter-grid">
-              <div class="span-filter-field">
-                <label class="span-filter-label tight" for="spanSymbolFilter">Symbol</label>
-                <input id="spanSymbolFilter" class="span-filter-input" type="text" placeholder="Type contract or underlying" autocomplete="off" spellcheck="false">
-              </div>
-
-              <div class="span-filter-field">
-                <label class="span-filter-label tight" for="spanTypeFilter">
-                  Type
-                  <span id="spanTypeAutoBadge" class="auto-fill-badge" hidden>Auto</span>
-                </label>
-                <select id="spanTypeFilter" class="span-filter-select">
-                  <option value="">All</option>
-                  <option value="FUT">FUT</option>
-                  <option value="OPT">OPT</option>
-                  <option value="CE">CE</option>
-                  <option value="PE">PE</option>
-                </select>
-              </div>
-
-              <div class="span-filter-field">
-                <label class="span-filter-label tight" for="spanExpiryFilter">
-                  Expiry
-                  <span id="spanExpiryAutoBadge" class="auto-fill-badge" hidden>Auto</span>
-                </label>
-                <input id="spanExpiryFilter" class="span-filter-input" type="text" placeholder="Expiry">
-              </div>
-
-              <div class="span-filter-field">
-                <label class="span-filter-label tight" for="spanStrikeMinFilter">
-                  Strike
-                  <span id="spanStrikeAutoBadge" class="auto-fill-badge" hidden>Auto</span>
-                </label>
-                <div class="span-range-row">
-                  <input id="spanStrikeMinFilter" class="span-filter-input" type="number" inputmode="decimal" step="any" placeholder="Min">
-                  <input id="spanStrikeMaxFilter" class="span-filter-input" type="number" inputmode="decimal" step="any" placeholder="Max">
-                </div>
-              </div>
-
-              <div class="span-filter-field">
-                <label class="span-filter-label tight" for="spanPriceMinFilter">Price</label>
-                <div class="span-range-row">
-                  <input id="spanPriceMinFilter" class="span-filter-input" type="number" inputmode="decimal" step="any" placeholder="Min">
-                  <input id="spanPriceMaxFilter" class="span-filter-input" type="number" inputmode="decimal" step="any" placeholder="Max">
-                </div>
-              </div>
-
-              <div class="span-filter-field">
-                <label class="span-filter-label tight" for="spanPriceScanMinFilter">Price Scan</label>
-                <div class="span-range-row">
-                  <input id="spanPriceScanMinFilter" class="span-filter-input" type="number" inputmode="decimal" step="any" placeholder="Min">
-                  <input id="spanPriceScanMaxFilter" class="span-filter-input" type="number" inputmode="decimal" step="any" placeholder="Max">
-                </div>
-              </div>
-
-              <div class="span-filter-field">
-                <label class="span-filter-label tight" for="spanDeltaMinFilter">Delta</label>
-                <div class="span-range-row">
-                  <input id="spanDeltaMinFilter" class="span-filter-input" type="number" inputmode="decimal" step="any" placeholder="Min">
-                  <input id="spanDeltaMaxFilter" class="span-filter-input" type="number" inputmode="decimal" step="any" placeholder="Max">
-                </div>
-              </div>
-
-              <button id="spanFiltersClearButton" class="btn btn-secondary span-filter-action" type="button">Clear Filters</button>
-            </div>
-
-            <div id="spanParsedTags" class="span-parse-tags" hidden></div>
-          </div>
-
           <div class="table-shell">
             <table class="span-table">
-              <thead id="spanTableHead"></thead>
+              <thead id="spanTableHead">
+                <tr>
+                  <th>Symbol</th>
+                  <th>Expiry</th>
+                  <th>Type</th>
+                  <th>Strike</th>
+                  <th>Price</th>
+                  <th>Price Scan Range</th>
+                  <th>Delta</th>
+                  <th>Scenario_1</th>
+                  <th>Scenario_2</th>
+                  <th>Scenario_3</th>
+                  <th>Scenario_4</th>
+                  <th>Scenario_5</th>
+                  <th>Scenario_6</th>
+                  <th>Scenario_7</th>
+                  <th>Scenario_8</th>
+                  <th>Scenario_9</th>
+                  <th>Scenario_10</th>
+                  <th>Scenario_11</th>
+                  <th>Scenario_12</th>
+                  <th>Scenario_13</th>
+                  <th>Scenario_14</th>
+                  <th>Scenario_15</th>
+                  <th>Scenario_16</th>
+                </tr>
+                <tr class="span-filter-row">
+                  <th><input id="spanSymbolFilter" class="span-filter-input" type="text" placeholder="Symbol"></th>
+                  <th><input id="spanExpiryFilter" class="span-filter-input" type="text" placeholder="Expiry"></th>
+                  <th>
+                    <select id="spanTypeFilter" class="span-filter-select">
+                      <option value="">All</option>
+                      <option value="FUT">FUT</option>
+                      <option value="OPT">OPT</option>
+                      <option value="CE">CE</option>
+                      <option value="PE">PE</option>
+                    </select>
+                  </th>
+                  <th>
+                    <div class="span-range-row">
+                      <input id="spanStrikeMinFilter" class="span-filter-input" type="number" inputmode="decimal" step="any" placeholder="Min">
+                      <input id="spanStrikeMaxFilter" class="span-filter-input" type="number" inputmode="decimal" step="any" placeholder="Max">
+                    </div>
+                  </th>
+                  <th>
+                    <div class="span-range-row">
+                      <input id="spanPriceMinFilter" class="span-filter-input" type="number" inputmode="decimal" step="any" placeholder="Min">
+                      <input id="spanPriceMaxFilter" class="span-filter-input" type="number" inputmode="decimal" step="any" placeholder="Max">
+                    </div>
+                  </th>
+                  <th>
+                    <div class="span-range-row">
+                      <input id="spanPriceScanMinFilter" class="span-filter-input" type="number" inputmode="decimal" step="any" placeholder="Min">
+                      <input id="spanPriceScanMaxFilter" class="span-filter-input" type="number" inputmode="decimal" step="any" placeholder="Max">
+                    </div>
+                  </th>
+                  <th>
+                    <div class="span-range-row">
+                      <input id="spanDeltaMinFilter" class="span-filter-input" type="number" inputmode="decimal" step="any" placeholder="Min">
+                      <input id="spanDeltaMaxFilter" class="span-filter-input" type="number" inputmode="decimal" step="any" placeholder="Max">
+                    </div>
+                  </th>
+                  <th class="span-filter-spacer" colspan="16">
+                    <button id="spanFiltersClearButton" class="btn btn-secondary span-filter-clear-btn" type="button">Clear Filters</button>
+                  </th>
+                </tr>
+              </thead>
               <tbody id="spanTableBody">
                 <tr class="span-empty">
                   <td colspan="23">Upload an <strong>nsccl*.spn</strong> or <strong>.zip</strong> file to preview extracted SPAN rows.</td>
@@ -1509,10 +1481,6 @@
           spanPriceScanMaxFilter: document.getElementById("spanPriceScanMaxFilter"),
           spanDeltaMinFilter: document.getElementById("spanDeltaMinFilter"),
           spanDeltaMaxFilter: document.getElementById("spanDeltaMaxFilter"),
-          spanParsedTags: document.getElementById("spanParsedTags"),
-          spanTypeAutoBadge: document.getElementById("spanTypeAutoBadge"),
-          spanExpiryAutoBadge: document.getElementById("spanExpiryAutoBadge"),
-          spanStrikeAutoBadge: document.getElementById("spanStrikeAutoBadge"),
           spanFiltersClearButton: document.getElementById("spanFiltersClearButton"),
         };
 
@@ -1585,13 +1553,6 @@
 
         function setSpanAutoBadge(field, enabled) {
           spanAutoState[field] = Boolean(enabled);
-          if (field === "type") {
-            elements.spanTypeAutoBadge.hidden = !enabled;
-          } else if (field === "expiry") {
-            elements.spanExpiryAutoBadge.hidden = !enabled;
-          } else if (field === "strike") {
-            elements.spanStrikeAutoBadge.hidden = !enabled;
-          }
         }
 
         function clearSpanAutoField(field) {
@@ -1618,22 +1579,6 @@
 
         function renderSpanParsedTags(parsed) {
           currentParsedSpanSymbol = parsed;
-          if (!parsed) {
-            elements.spanParsedTags.hidden = true;
-            elements.spanParsedTags.innerHTML = "";
-            return;
-          }
-
-          const tags = [
-            parsed.underlying,
-            parsed.expiryLabel,
-            parsed.instrumentTag,
-            parsed.optionLabel,
-            Number.isFinite(parsed.strike) ? `Strike: ${parsed.strike}` : "",
-          ].filter(Boolean);
-
-          elements.spanParsedTags.hidden = tags.length === 0;
-          elements.spanParsedTags.innerHTML = tags.map((tag) => `<span class="span-parse-tag">${escapeHtml(tag)}</span>`).join("");
         }
 
         function getMonthFromCode(code) {
@@ -1936,10 +1881,6 @@
               ${Array.from({ length: SPAN_HEADERS.length - 1 }, () => "<td></td>").join("")}
             </tr>
           `;
-        }
-
-        function renderSpanTableHead() {
-          elements.spanTableHead.innerHTML = `<tr>${SPAN_HEADERS.map((header) => `<th>${escapeHtml(header)}</th>`).join("")}</tr>`;
         }
 
         function setSpanStatus(message, tone = "") {
@@ -3581,7 +3522,6 @@
         });
 
         loadState();
-        renderSpanTableHead();
         resetSpanExtract(false);
         resetMetrics();
         renderScratchpad();
