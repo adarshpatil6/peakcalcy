@@ -888,6 +888,20 @@
         font-size: 0.92rem;
       }
 
+      .span-empty-inline td {
+        padding: 18px 14px;
+        border-bottom: none;
+        color: var(--muted);
+      }
+
+      .span-empty-inline td:first-child {
+        min-width: 340px;
+        white-space: normal;
+        font-family: "Source Sans Pro", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+        font-size: 0.92rem;
+        font-weight: 600;
+      }
+
       .shortcut-modal {
         position: fixed;
         inset: 0;
@@ -1819,6 +1833,15 @@
           return result;
         }
 
+        function renderSpanInlineEmptyMessage(message) {
+          elements.spanTableBody.innerHTML = `
+            <tr class="span-empty-inline">
+              <td>${escapeHtml(message)}</td>
+              ${Array.from({ length: SPAN_HEADERS.length - 1 }, () => "<td></td>").join("")}
+            </tr>
+          `;
+        }
+
         function renderSpanTableHead() {
           elements.spanTableHead.innerHTML = `<tr>${SPAN_HEADERS.map((header) => `<th>${escapeHtml(header)}</th>`).join("")}</tr>`;
         }
@@ -1843,7 +1866,7 @@
 
           if (!rows.length) {
             elements.spanPreviewCopy.textContent = `Showing 0 of ${totalRows} rows. Adjust the filters to widen the result.`;
-            elements.spanTableBody.innerHTML = '<tr class="span-empty"><td colspan="23">No SPAN rows match the current filters.</td></tr>';
+            renderSpanInlineEmptyMessage("No SPAN rows match the current filters.");
             return;
           }
 
@@ -1901,7 +1924,10 @@
           const deltaMin = getNumericInputValue(elements.spanDeltaMinFilter);
           const deltaMax = getNumericInputValue(elements.spanDeltaMaxFilter);
           const useParsedExpiry = spanAutoState.expiry && currentParsedSpanSymbol && normalizeCompact(expiryQuery) === normalizeCompact(currentParsedSpanSymbol.expiryLabel);
-          const normalizedSymbolQuery = symbolQuery.toUpperCase();
+          const effectiveSymbolQuery = currentParsedSpanSymbol && currentParsedSpanSymbol.underlying
+            ? currentParsedSpanSymbol.underlying
+            : symbolQuery;
+          const normalizedSymbolQuery = effectiveSymbolQuery.toUpperCase();
           const normalizedExpiryQuery = normalizeCompact(expiryQuery);
 
           currentSpanFilteredRows = currentSpanRows.filter((row) => {
@@ -1936,7 +1962,7 @@
             return true;
           });
 
-          renderSpanPreviewRows(currentSpanFilteredRows, symbolQuery, currentSpanRows.length);
+          renderSpanPreviewRows(currentSpanFilteredRows, effectiveSymbolQuery, currentSpanRows.length);
           elements.downloadSpanCsvButton.disabled = currentSpanFilteredRows.length === 0;
         }
 
