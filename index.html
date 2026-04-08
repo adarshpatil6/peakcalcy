@@ -1265,6 +1265,7 @@
               <div class="span-filter-field">
                 <label class="span-filter-label" for="spanSymbolFilter">Symbol Search</label>
                 <input id="spanSymbolFilter" class="span-filter-input" type="text" placeholder="NIFTY2620325500CE or CRUDEOIL26APRFUT" autocomplete="off" spellcheck="false">
+                <div class="helper-text">Type a full contract for quick find, or just the underlying name for a broad search.</div>
               </div>
 
               <div class="span-filter-field">
@@ -1624,6 +1625,60 @@
           return match || null;
         }
 
+        function parseSpanExpiryValue(expiry) {
+          const raw = String(expiry || "").trim().toUpperCase();
+          const compact = normalizeCompact(raw);
+          if (!compact) {
+            return null;
+          }
+
+          if (/^\d{8}$/.test(compact)) {
+            return {
+              year: Number(compact.slice(0, 4)),
+              month: Number(compact.slice(4, 6)),
+              day: Number(compact.slice(6, 8)),
+            };
+          }
+
+          if (/^\d{6}$/.test(compact)) {
+            return {
+              year: Number(compact.slice(0, 4)),
+              month: Number(compact.slice(4, 6)),
+              day: null,
+            };
+          }
+
+          let match = compact.match(/^(\d{2})(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)(\d{4})$/);
+          if (match) {
+            const month = getMonthFromAbbr(match[2]);
+            return {
+              year: Number(match[3]),
+              month: month ? Number(month.number) : null,
+              day: Number(match[1]),
+            };
+          }
+
+          match = compact.match(/^(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)(\d{4})$/);
+          if (match) {
+            const month = getMonthFromAbbr(match[1]);
+            return {
+              year: Number(match[2]),
+              month: month ? Number(month.number) : null,
+              day: null,
+            };
+          }
+
+          return null;
+        }
+
+        function rowMatchesSymbolQuery(symbol, rawQuery, parsed) {
+          const normalizedSymbol = normalizeCompact(symbol);
+          if (parsed && parsed.underlying) {
+            return normalizedSymbol === normalizeCompact(parsed.underlying);
+          }
+          return !rawQuery || String(symbol || "").toUpperCase().includes(String(rawQuery || "").toUpperCase());
+        }
+
         function parseSmartSpanSymbol(rawInput) {
           const raw = String(rawInput || "").toUpperCase().trim().replace(/\s+/g, " ");
           if (!raw) {
@@ -1650,7 +1705,7 @@
               monthCode: String(match[3]).toUpperCase(),
               day,
               strike,
-              filterType: "OPT",
+              filterType: optionType,
               instrumentTag: "OPT",
               optionLabel: optionType === "CE" ? "CALL" : "PUT",
               optionType,
@@ -1672,7 +1727,7 @@
               monthAbbr,
               monthNumber: (getMonthFromAbbr(monthAbbr) || {}).number || "",
               strike,
-              filterType: "OPT",
+              filterType: optionType,
               instrumentTag: "OPT",
               optionLabel: optionType === "CE" ? "CALL" : "PUT",
               optionType,
@@ -1767,8 +1822,8 @@
           setSpanAutoBadge("expiry", Boolean(parsed.expiryLabel));
 
           if (Number.isFinite(parsed.strike)) {
-            elements.spanStrikeMinFilter.value = String(parsed.strike - 500);
-            elements.spanStrikeMaxFilter.value = String(parsed.strike + 500);
+            elements.spanStrikeMinFilter.value = String(parsed.strike);
+            elements.spanStrikeMaxFilter.value = String(parsed.strike);
             setSpanAutoBadge("strike", true);
           } else {
             clearSpanAutoField("strike");
@@ -1780,27 +1835,47 @@
             return true;
           }
 
-          const value = normalizeCompact(expiry);
-          if (!value) {
+          const parsedExpiry = parseSpanExpiryValue(expiry);
+          if (!parsedExpiry) {
+            const value = normalizeCompact(expiry);
+            if (!value) {
+              return false;
+            }
+
+            const year4 = String(parsed.year || "");
+            const year2 = String(parsed.year2 || "");
+            if (year4 && !(value.includes(year4) || (year2 && value.includes(year2)))) {
+              return false;
+            }
+
+            if (parsed.monthAbbr && !value.includes(parsed.monthAbbr)) {
+              return false;
+            }
+
+            if (parsed.day) {
+              const day = padTwo(parsed.day);
+              if (!value.includes(day)) {
+                return false;
+              }
+            }
+
+            return true;
+          }
+
+          if (parsed.year && parsedExpiry.year && parsedExpiry.year !== parsed.year) {
             return false;
           }
 
-          const year4 = String(parsed.year || "");
-          const year2 = String(parsed.year2 || "");
-          if (year4 && !(value.includes(year4) || (year2 && value.includes(year2)))) {
-            return false;
-          }
-
-          if (parsed.monthAbbr && !(value.includes(parsed.monthAbbr) || (parsed.monthNumber && value.includes(parsed.monthNumber)) || (parsed.monthCode && value.includes(parsed.monthCode)))) {
+          if (parsed.monthNumber && parsedExpiry.month && parsedExpiry.month !== Number(parsed.monthNumber)) {
             return false;
           }
 
           if (parsed.day) {
-            const day = padTwo(parsed.day);
-            const compactDay = String(Number(day));
-            const extraDay = parsed.extraDay ? padTwo(parsed.extraDay) : "";
-            const extraCompactDay = extraDay ? String(Number(extraDay)) : "";
-            if (!(value.includes(day) || value.includes(compactDay) || (extraDay && (value.includes(extraDay) || value.includes(extraCompactDay))))) {
+            const allowedDays = [Number(parsed.day)];
+            if (parsed.extraDay) {
+              allowedDays.push(Number(parsed.extraDay));
+            }
+            if (!parsedExpiry.day || !allowedDays.includes(parsedExpiry.day)) {
               return false;
             }
           }
@@ -1924,16 +1999,12 @@
           const deltaMin = getNumericInputValue(elements.spanDeltaMinFilter);
           const deltaMax = getNumericInputValue(elements.spanDeltaMaxFilter);
           const useParsedExpiry = spanAutoState.expiry && currentParsedSpanSymbol && normalizeCompact(expiryQuery) === normalizeCompact(currentParsedSpanSymbol.expiryLabel);
-          const effectiveSymbolQuery = currentParsedSpanSymbol && currentParsedSpanSymbol.underlying
-            ? currentParsedSpanSymbol.underlying
-            : symbolQuery;
-          const normalizedSymbolQuery = effectiveSymbolQuery.toUpperCase();
           const normalizedExpiryQuery = normalizeCompact(expiryQuery);
 
           currentSpanFilteredRows = currentSpanRows.filter((row) => {
             const symbol = String(row.Symbol || "");
             const expiry = String(row.Expiry || "");
-            if (normalizedSymbolQuery && !symbol.toUpperCase().includes(normalizedSymbolQuery)) {
+            if (!rowMatchesSymbolQuery(symbol, symbolQuery, currentParsedSpanSymbol)) {
               return false;
             }
             if (!rowMatchesTypeFilter(row.Type, typeFilter)) {
@@ -1962,7 +2033,11 @@
             return true;
           });
 
-          renderSpanPreviewRows(currentSpanFilteredRows, effectiveSymbolQuery, currentSpanRows.length);
+          renderSpanPreviewRows(
+            currentSpanFilteredRows,
+            currentParsedSpanSymbol && currentParsedSpanSymbol.underlying ? currentParsedSpanSymbol.underlying : symbolQuery,
+            currentSpanRows.length
+          );
           elements.downloadSpanCsvButton.disabled = currentSpanFilteredRows.length === 0;
         }
 
