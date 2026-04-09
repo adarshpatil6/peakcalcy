@@ -102,6 +102,38 @@
         gap: 10px;
       }
 
+      .workspace-tabs {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 16px;
+      }
+
+      .workspace-tab {
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        background: var(--panel);
+        color: var(--text);
+        padding: 11px 16px;
+        font-size: 0.92rem;
+        font-weight: 700;
+        cursor: pointer;
+      }
+
+      .workspace-tab.active {
+        border-color: rgba(255, 75, 75, 0.35);
+        background: var(--accent-soft);
+        color: var(--accent);
+      }
+
+      .workspace-page {
+        margin-top: 20px;
+      }
+
+      .workspace-page[hidden] {
+        display: none !important;
+      }
+
       .toggle-chip {
         border: 1px solid var(--border);
         border-radius: 999px;
@@ -142,7 +174,6 @@
         display: grid;
         grid-template-columns: minmax(300px, 30%) minmax(0, 70%);
         gap: 24px;
-        margin-top: 24px;
         align-items: start;
       }
 
@@ -669,7 +700,88 @@
       .running-total strong { font-size: 1.2rem; }
 
       .span-panel {
-        margin-top: 24px;
+        margin-top: 0;
+      }
+
+      body.compact-mode .app-shell {
+        width: min(1540px, calc(100vw - 22px));
+        margin: 10px auto 20px;
+      }
+
+      body.compact-mode .app-header {
+        padding: 14px 18px;
+      }
+
+      body.compact-mode .workspace-page {
+        margin-top: 14px;
+      }
+
+      body.compact-mode .workspace {
+        gap: 16px;
+      }
+
+      body.compact-mode .left-column,
+      body.compact-mode .panel-body {
+        padding: 18px;
+      }
+
+      body.compact-mode .section-kicker {
+        margin-bottom: 8px;
+        padding: 5px 10px;
+      }
+
+      body.compact-mode .field-label {
+        margin-top: 14px;
+      }
+
+      body.compact-mode .funds-input {
+        min-height: 360px;
+        margin-top: 8px;
+        padding: 12px 14px;
+        line-height: 1.45;
+      }
+
+      body.compact-mode .option-list,
+      body.compact-mode .button-row,
+      body.compact-mode .table-shell,
+      body.compact-mode .proof-shell,
+      body.compact-mode .running-total {
+        margin-top: 14px;
+      }
+
+      body.compact-mode .metric-grid,
+      body.compact-mode .span-summary-grid {
+        gap: 12px;
+        margin-top: 16px;
+      }
+
+      body.compact-mode .metric-card,
+      body.compact-mode .span-summary-card {
+        padding: 14px;
+      }
+
+      body.compact-mode .proof-toolbar,
+      body.compact-mode .running-total {
+        padding: 14px 16px;
+      }
+
+      body.compact-mode .scratchpad-toolbar {
+        gap: 10px;
+        margin-top: 16px;
+      }
+
+      body.compact-mode .scratchpad-helper-row,
+      body.compact-mode .scratchpad-live-row,
+      body.compact-mode .span-upload-row,
+      body.compact-mode .span-preview-head {
+        margin-top: 12px;
+      }
+
+      body.compact-mode .btn,
+      body.compact-mode .toggle-chip,
+      body.compact-mode .quick-chip {
+        padding-top: 10px;
+        padding-bottom: 10px;
       }
 
       .file-picker {
@@ -1022,12 +1134,18 @@
         <div class="header-row">
           <h1>Calculator</h1>
           <div class="header-actions">
+            <button id="compactModeToggle" class="toggle-chip" type="button" aria-pressed="false">Compact</button>
             <button id="darkModeToggle" class="toggle-chip" type="button" aria-pressed="false">Dark Mode</button>
             <button id="shortcutsToggle" class="toggle-chip" type="button" aria-haspopup="dialog" aria-controls="shortcutModal">Shortcuts</button>
           </div>
         </div>
+        <div class="workspace-tabs" role="tablist" aria-label="Workspace sections">
+          <button id="workspaceTabCalculator" class="workspace-tab active" type="button" role="tab" aria-selected="true" aria-controls="calculatorWorkspace" data-workspace-tab="calculator">Calculator</button>
+          <button id="workspaceTabSpan" class="workspace-tab" type="button" role="tab" aria-selected="false" aria-controls="spanWorkspace" data-workspace-tab="span">SPAN</button>
+        </div>
       </header>
 
+      <section id="calculatorWorkspace" class="workspace-page">
       <main class="workspace">
         <section class="left-column">
           <h2 class="panel-title">RMS Calculator</h2>
@@ -1072,6 +1190,7 @@
                 </div>
                 <div class="section-actions">
                   <div class="quick-actions" aria-label="Funds actions">
+                    <button id="restoreLastCalcButton" class="quick-chip" type="button" disabled>Restore Last</button>
                     <button id="clearAllButton" class="quick-chip quick-chip-wide" type="button">Clear</button>
                   </div>
                 </div>
@@ -1202,7 +1321,9 @@
           </section>
         </section>
       </main>
+      </section>
 
+      <section id="spanWorkspace" class="workspace-page" hidden>
       <section class="panel span-panel">
         <div class="panel-body">
           <div class="section-header">
@@ -1211,6 +1332,7 @@
               <h2 class="panel-title">SPAN Extract</h2>
             </div>
             <div class="section-actions">
+              <button id="restoreLastSpanButton" class="btn btn-secondary" type="button" disabled>Restore Last</button>
               <button id="downloadSpanCsvButton" class="btn btn-secondary" type="button" disabled>Download CSV</button>
               <button id="clearSpanButton" class="btn btn-secondary" type="button" disabled>Clear All</button>
             </div>
@@ -1309,6 +1431,7 @@
           </div>
         </div>
       </section>
+      </section>
     </div>
     <div id="shortcutModal" class="shortcut-modal" role="dialog" aria-modal="true" aria-labelledby="shortcutTitle">
       <div class="shortcut-card">
@@ -1347,6 +1470,9 @@
         };
 
         const STORAGE_KEY = "calculator-dashboard-state-v1";
+        const SPAN_CACHE_DB = "calculator-span-cache";
+        const SPAN_CACHE_STORE = "snapshots";
+        const SPAN_CACHE_KEY = "latest";
         const CLEANUP_ALIASES = Object.values(FUND_LABELS).flat().sort((left, right) => right.length - left.length);
         const SPAN_HEADERS = [
           "Symbol",
@@ -1381,7 +1507,11 @@
         let currentSpanRows = [];
         let currentSpanFilteredRows = [];
         let currentSpanMeta = null;
+        let currentWorkspaceTab = "calculator";
+        let lastCalculationSnapshot = null;
+        let lastSpanCacheMeta = null;
         let autoCalculateTimer = 0;
+        let spanDbPromise = null;
         const scratchpadHistory = [];
         const spanAutoState = {
           type: false,
@@ -1391,13 +1521,18 @@
         let currentParsedSpanSymbol = null;
 
         const elements = {
+          compactModeToggle: document.getElementById("compactModeToggle"),
           darkModeToggle: document.getElementById("darkModeToggle"),
           shortcutsToggle: document.getElementById("shortcutsToggle"),
+          workspaceTabs: Array.from(document.querySelectorAll("[data-workspace-tab]")),
+          calculatorWorkspace: document.getElementById("calculatorWorkspace"),
+          spanWorkspace: document.getElementById("spanWorkspace"),
           shortcutModal: document.getElementById("shortcutModal"),
           closeShortcutsButton: document.getElementById("closeShortcutsButton"),
           fundsInput: document.getElementById("fundsInput"),
           cleanupPasteButton: document.getElementById("cleanupPasteButton"),
           clearAllButton: document.getElementById("clearAllButton"),
+          restoreLastCalcButton: document.getElementById("restoreLastCalcButton"),
           copySummaryButton: document.getElementById("copySummaryButton"),
           copyRequiredButton: document.getElementById("copyRequiredButton"),
           copyShortfallButton: document.getElementById("copyShortfallButton"),
@@ -1429,6 +1564,7 @@
           scratchpadBody: document.getElementById("scratchpadBody"),
           runningTotal: document.getElementById("runningTotal"),
           spanFileInput: document.getElementById("spanFileInput"),
+          restoreLastSpanButton: document.getElementById("restoreLastSpanButton"),
           downloadSpanCsvButton: document.getElementById("downloadSpanCsvButton"),
           clearSpanButton: document.getElementById("clearSpanButton"),
           spanSourceValue: document.getElementById("spanSourceValue"),
@@ -2240,6 +2376,9 @@
             updateSpanSummary(currentSpanMeta, rows.length);
             applySpanFilters();
             elements.clearSpanButton.disabled = false;
+            if (rows.length) {
+              void saveLastSpanSnapshot(source, rows);
+            }
             setSpanStatus(
               rows.length
                 ? `Parsed ${rows.length} SPAN rows from ${source.innerName}.`
@@ -2280,6 +2419,139 @@
           };
         }
 
+        function updateRestoreButtons() {
+          elements.restoreLastCalcButton.disabled = !(lastCalculationSnapshot && String(lastCalculationSnapshot.fundsInput || "").trim());
+          elements.restoreLastSpanButton.disabled = !(lastSpanCacheMeta && lastSpanCacheMeta.rowsCount > 0);
+        }
+
+        function applyWorkspaceTab(tab, persist = true) {
+          currentWorkspaceTab = tab === "span" ? "span" : "calculator";
+          const onCalculator = currentWorkspaceTab === "calculator";
+          elements.calculatorWorkspace.hidden = !onCalculator;
+          elements.spanWorkspace.hidden = onCalculator;
+          elements.workspaceTabs.forEach((button) => {
+            const active = button.dataset.workspaceTab === currentWorkspaceTab;
+            button.classList.toggle("active", active);
+            button.setAttribute("aria-selected", active ? "true" : "false");
+          });
+          if (persist) {
+            persistState();
+          }
+        }
+
+        function applyCompactMode(enabled, persist = true) {
+          document.body.classList.toggle("compact-mode", enabled);
+          elements.compactModeToggle.classList.toggle("active", enabled);
+          elements.compactModeToggle.setAttribute("aria-pressed", enabled ? "true" : "false");
+          if (persist) {
+            persistState();
+          }
+        }
+
+        function getSpanDb() {
+          if (!window.indexedDB) {
+            return Promise.reject(new Error("IndexedDB unavailable"));
+          }
+          if (!spanDbPromise) {
+            spanDbPromise = new Promise((resolve, reject) => {
+              const request = window.indexedDB.open(SPAN_CACHE_DB, 1);
+              request.onupgradeneeded = () => {
+                const db = request.result;
+                if (!db.objectStoreNames.contains(SPAN_CACHE_STORE)) {
+                  db.createObjectStore(SPAN_CACHE_STORE);
+                }
+              };
+              request.onsuccess = () => resolve(request.result);
+              request.onerror = () => reject(request.error || new Error("Could not open the SPAN cache."));
+            });
+          }
+          return spanDbPromise;
+        }
+
+        async function saveLastSpanSnapshot(meta, rows) {
+          const payload = {
+            meta,
+            rows,
+            savedAt: Date.now(),
+          };
+          lastSpanCacheMeta = {
+            sourceName: meta.sourceName,
+            innerName: meta.innerName,
+            mode: meta.mode,
+            rowsCount: rows.length,
+            savedAt: payload.savedAt,
+          };
+          updateRestoreButtons();
+          persistState();
+          try {
+            const db = await getSpanDb();
+            await new Promise((resolve, reject) => {
+              const tx = db.transaction(SPAN_CACHE_STORE, "readwrite");
+              tx.objectStore(SPAN_CACHE_STORE).put(payload, SPAN_CACHE_KEY);
+              tx.oncomplete = () => resolve();
+              tx.onerror = () => reject(tx.error || new Error("Could not save the SPAN cache."));
+              tx.onabort = () => reject(tx.error || new Error("Could not save the SPAN cache."));
+            });
+          } catch (error) {
+            console.warn("Could not store the last SPAN snapshot.", error);
+          }
+        }
+
+        async function readLastSpanSnapshot() {
+          try {
+            const db = await getSpanDb();
+            return await new Promise((resolve, reject) => {
+              const tx = db.transaction(SPAN_CACHE_STORE, "readonly");
+              const request = tx.objectStore(SPAN_CACHE_STORE).get(SPAN_CACHE_KEY);
+              request.onsuccess = () => resolve(request.result || null);
+              request.onerror = () => reject(request.error || new Error("Could not read the SPAN cache."));
+            });
+          } catch (error) {
+            console.warn("Could not read the last SPAN snapshot.", error);
+            return null;
+          }
+        }
+
+        function restoreLastCalculation() {
+          if (!lastCalculationSnapshot || !String(lastCalculationSnapshot.fundsInput || "").trim()) {
+            return;
+          }
+          elements.fundsInput.value = lastCalculationSnapshot.fundsInput;
+          elements.includeDeliveryMargin.checked = Boolean(lastCalculationSnapshot.includeDeliveryMargin);
+          elements.ignoreOptionPremium.checked = Boolean(lastCalculationSnapshot.ignoreOptionPremium);
+          applyWorkspaceTab("calculator");
+          calculateRms(false);
+        }
+
+        async function restoreLastSpanSnapshot() {
+          const snapshot = await readLastSpanSnapshot();
+          if (!snapshot || !Array.isArray(snapshot.rows) || !snapshot.rows.length) {
+            alert("No saved SPAN session is available yet.");
+            return;
+          }
+          currentSpanRows = snapshot.rows;
+          currentSpanFilteredRows = snapshot.rows.slice();
+          currentSpanMeta = snapshot.meta || {
+            sourceName: "Saved SPAN session",
+            innerName: "Saved SPAN session",
+            mode: "CACHE",
+          };
+          lastSpanCacheMeta = {
+            sourceName: currentSpanMeta.sourceName,
+            innerName: currentSpanMeta.innerName,
+            mode: currentSpanMeta.mode,
+            rowsCount: snapshot.rows.length,
+            savedAt: snapshot.savedAt || Date.now(),
+          };
+          resetSpanFilters();
+          updateSpanSummary(currentSpanMeta, currentSpanRows.length);
+          applySpanFilters();
+          elements.clearSpanButton.disabled = false;
+          setSpanStatus(`Restored ${currentSpanRows.length} SPAN rows from ${currentSpanMeta.innerName}.`, "is-ready");
+          updateRestoreButtons();
+          applyWorkspaceTab("span");
+        }
+
         function persistState() {
           localStorage.setItem(STORAGE_KEY, JSON.stringify({
             fundsInput: elements.fundsInput.value,
@@ -2288,7 +2560,11 @@
             scratchpadEntries,
             scratchpadInput: elements.scratchpadInput.value,
             darkMode: document.body.classList.contains("theme-dark"),
+            compactMode: document.body.classList.contains("compact-mode"),
             proofCollapsed: elements.proofContent.hidden,
+            workspaceTab: currentWorkspaceTab,
+            lastCalculationSnapshot,
+            lastSpanCacheMeta,
           }));
         }
 
@@ -2305,8 +2581,13 @@
             elements.ignoreOptionPremium.checked = Boolean(state.ignoreOptionPremium);
             scratchpadEntries = Array.isArray(state.scratchpadEntries) ? state.scratchpadEntries : [];
             elements.scratchpadInput.value = state.scratchpadInput || "";
-            applyTheme(Boolean(state.darkMode));
+            applyTheme(Boolean(state.darkMode), false);
+            applyCompactMode(state.compactMode !== false, false);
             applyProofCollapsed(Boolean(state.proofCollapsed), false);
+            applyWorkspaceTab(state.workspaceTab || "calculator", false);
+            lastCalculationSnapshot = state.lastCalculationSnapshot || null;
+            lastSpanCacheMeta = state.lastSpanCacheMeta || null;
+            updateRestoreButtons();
           } catch (error) {
             console.warn("Could not restore local state.", error);
           }
@@ -2573,11 +2854,13 @@
           renderScratchpad();
         }
 
-        function applyTheme(enabled) {
+        function applyTheme(enabled, persist = true) {
           document.body.classList.toggle("theme-dark", enabled);
           elements.darkModeToggle.classList.toggle("active", enabled);
           elements.darkModeToggle.setAttribute("aria-pressed", enabled ? "true" : "false");
-          persistState();
+          if (persist) {
+            persistState();
+          }
         }
 
         function applyProofCollapsed(collapsed, persist = true) {
@@ -2838,6 +3121,13 @@
             elements.includeDeliveryMargin.checked,
             elements.ignoreOptionPremium.checked
           ));
+          lastCalculationSnapshot = {
+            fundsInput: elements.fundsInput.value,
+            includeDeliveryMargin: elements.includeDeliveryMargin.checked,
+            ignoreOptionPremium: elements.ignoreOptionPremium.checked,
+            savedAt: Date.now(),
+          };
+          updateRestoreButtons();
           persistState();
         }
 
@@ -3308,6 +3598,7 @@
         elements.clearButton.addEventListener("click", clearRms);
         elements.cleanupPasteButton.addEventListener("click", cleanupFundsInput);
         elements.clearAllButton.addEventListener("click", clearAllInputs);
+        elements.restoreLastCalcButton.addEventListener("click", restoreLastCalculation);
         elements.copySummaryButton.addEventListener("click", () => {
           if (!currentRmsResult) {
             return;
@@ -3329,6 +3620,7 @@
         elements.toggleProofButton.addEventListener("click", () => applyProofCollapsed(!elements.proofContent.hidden));
         elements.exportProofButton.addEventListener("click", exportProofCsv);
         elements.exportScratchpadButton.addEventListener("click", exportScratchpadCsv);
+        elements.restoreLastSpanButton.addEventListener("click", restoreLastSpanSnapshot);
         elements.downloadSpanCsvButton.addEventListener("click", exportSpanCsv);
         elements.clearSpanButton.addEventListener("click", () => resetSpanExtract());
         elements.spanFileInput.addEventListener("change", handleSpanFileSelection);
@@ -3343,6 +3635,12 @@
         elements.spanPriceFilter.addEventListener("input", applySpanFilters);
         elements.spanPriceScanFilter.addEventListener("input", applySpanFilters);
         elements.spanDeltaFilter.addEventListener("input", applySpanFilters);
+        elements.workspaceTabs.forEach((button) => {
+          button.addEventListener("click", () => applyWorkspaceTab(button.dataset.workspaceTab));
+        });
+        elements.compactModeToggle.addEventListener("click", () => {
+          applyCompactMode(!document.body.classList.contains("compact-mode"));
+        });
         elements.darkModeToggle.addEventListener("click", () => applyTheme(!document.body.classList.contains("theme-dark")));
         elements.shortcutsToggle.addEventListener("click", openShortcuts);
         elements.closeShortcutsButton.addEventListener("click", closeShortcuts);
@@ -3461,11 +3759,14 @@
           }
         });
 
+        applyCompactMode(true, false);
+        applyWorkspaceTab("calculator", false);
         loadState();
         resetSpanExtract(false);
         resetMetrics();
         renderScratchpad();
         renderScratchpadPreview();
+        updateRestoreButtons();
         if (elements.fundsInput.value.trim()) {
           calculateRms(false);
         }
