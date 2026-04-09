@@ -1913,6 +1913,14 @@
           return haystack.includes(needle);
         }
 
+        function rowMatchesExactSymbol(value, query) {
+          const needle = normalizeCompact(query);
+          if (!needle) {
+            return true;
+          }
+          return normalizeCompact(value) === needle;
+        }
+
         function applySpanFilters() {
           if (!currentSpanRows.length) {
             currentSpanFilteredRows = [];
@@ -1930,7 +1938,7 @@
           const deltaQuery = elements.spanDeltaFilter.value.trim();
 
           currentSpanFilteredRows = currentSpanRows.filter((row) => {
-            if (!rowMatchesTextFilter(row.Symbol, symbolQuery)) {
+            if (!rowMatchesExactSymbol(row.Symbol, symbolQuery)) {
               return false;
             }
             if (!rowMatchesTypeFilter(row.Type, typeFilter)) {
