@@ -1302,30 +1302,10 @@
                       <option value="PE">PE</option>
                     </select>
                   </th>
-                  <th>
-                    <div class="span-range-row">
-                      <input id="spanStrikeMinFilter" class="span-filter-input" type="number" inputmode="decimal" step="any" placeholder="Min">
-                      <input id="spanStrikeMaxFilter" class="span-filter-input" type="number" inputmode="decimal" step="any" placeholder="Max">
-                    </div>
-                  </th>
-                  <th>
-                    <div class="span-range-row">
-                      <input id="spanPriceMinFilter" class="span-filter-input" type="number" inputmode="decimal" step="any" placeholder="Min">
-                      <input id="spanPriceMaxFilter" class="span-filter-input" type="number" inputmode="decimal" step="any" placeholder="Max">
-                    </div>
-                  </th>
-                  <th>
-                    <div class="span-range-row">
-                      <input id="spanPriceScanMinFilter" class="span-filter-input" type="number" inputmode="decimal" step="any" placeholder="Min">
-                      <input id="spanPriceScanMaxFilter" class="span-filter-input" type="number" inputmode="decimal" step="any" placeholder="Max">
-                    </div>
-                  </th>
-                  <th>
-                    <div class="span-range-row">
-                      <input id="spanDeltaMinFilter" class="span-filter-input" type="number" inputmode="decimal" step="any" placeholder="Min">
-                      <input id="spanDeltaMaxFilter" class="span-filter-input" type="number" inputmode="decimal" step="any" placeholder="Max">
-                    </div>
-                  </th>
+                  <th><input id="spanStrikeFilter" class="span-filter-input" type="text" placeholder="Strike"></th>
+                  <th><input id="spanPriceFilter" class="span-filter-input" type="text" placeholder="Price"></th>
+                  <th><input id="spanPriceScanFilter" class="span-filter-input" type="text" placeholder="Price Scan"></th>
+                  <th><input id="spanDeltaFilter" class="span-filter-input" type="text" placeholder="Delta"></th>
                   <th class="span-filter-spacer" colspan="16">
                     <button id="spanFiltersClearButton" class="btn btn-secondary span-filter-clear-btn" type="button">Clear Filters</button>
                   </th>
@@ -1473,14 +1453,10 @@
           spanSymbolFilter: document.getElementById("spanSymbolFilter"),
           spanTypeFilter: document.getElementById("spanTypeFilter"),
           spanExpiryFilter: document.getElementById("spanExpiryFilter"),
-          spanStrikeMinFilter: document.getElementById("spanStrikeMinFilter"),
-          spanStrikeMaxFilter: document.getElementById("spanStrikeMaxFilter"),
-          spanPriceMinFilter: document.getElementById("spanPriceMinFilter"),
-          spanPriceMaxFilter: document.getElementById("spanPriceMaxFilter"),
-          spanPriceScanMinFilter: document.getElementById("spanPriceScanMinFilter"),
-          spanPriceScanMaxFilter: document.getElementById("spanPriceScanMaxFilter"),
-          spanDeltaMinFilter: document.getElementById("spanDeltaMinFilter"),
-          spanDeltaMaxFilter: document.getElementById("spanDeltaMaxFilter"),
+          spanStrikeFilter: document.getElementById("spanStrikeFilter"),
+          spanPriceFilter: document.getElementById("spanPriceFilter"),
+          spanPriceScanFilter: document.getElementById("spanPriceScanFilter"),
+          spanDeltaFilter: document.getElementById("spanDeltaFilter"),
           spanFiltersClearButton: document.getElementById("spanFiltersClearButton"),
         };
 
@@ -1565,8 +1541,7 @@
             setSpanAutoBadge("expiry", false);
           }
           if (field === "strike" && spanAutoState.strike) {
-            elements.spanStrikeMinFilter.value = "";
-            elements.spanStrikeMaxFilter.value = "";
+            elements.spanStrikeFilter.value = "";
             setSpanAutoBadge("strike", false);
           }
         }
@@ -1788,8 +1763,7 @@
           setSpanAutoBadge("expiry", Boolean(parsed.expiryLabel));
 
           if (Number.isFinite(parsed.strike)) {
-            elements.spanStrikeMinFilter.value = String(parsed.strike);
-            elements.spanStrikeMaxFilter.value = String(parsed.strike);
+            elements.spanStrikeFilter.value = String(parsed.strike);
             setSpanAutoBadge("strike", true);
           } else {
             clearSpanAutoField("strike");
@@ -1930,15 +1904,13 @@
           return normalizedRowType === normalizedFilter;
         }
 
-        function rowMatchesNumberRange(value, minimum, maximum) {
-          const numeric = normaliseAmount(value);
-          if (minimum !== null && numeric < minimum) {
-            return false;
+        function rowMatchesTextFilter(value, query, compact = false) {
+          const needle = compact ? normalizeCompact(query) : String(query || "").toUpperCase().trim();
+          if (!needle) {
+            return true;
           }
-          if (maximum !== null && numeric > maximum) {
-            return false;
-          }
-          return true;
+          const haystack = compact ? normalizeCompact(value) : String(value || "").toUpperCase();
+          return haystack.includes(needle);
         }
 
         function applySpanFilters() {
@@ -1952,54 +1924,37 @@
           const symbolQuery = elements.spanSymbolFilter.value.trim();
           const expiryQuery = elements.spanExpiryFilter.value.trim();
           const typeFilter = elements.spanTypeFilter.value;
-          const strikeMin = getNumericInputValue(elements.spanStrikeMinFilter);
-          const strikeMax = getNumericInputValue(elements.spanStrikeMaxFilter);
-          const priceMin = getNumericInputValue(elements.spanPriceMinFilter);
-          const priceMax = getNumericInputValue(elements.spanPriceMaxFilter);
-          const priceScanMin = getNumericInputValue(elements.spanPriceScanMinFilter);
-          const priceScanMax = getNumericInputValue(elements.spanPriceScanMaxFilter);
-          const deltaMin = getNumericInputValue(elements.spanDeltaMinFilter);
-          const deltaMax = getNumericInputValue(elements.spanDeltaMaxFilter);
-          const useParsedExpiry = spanAutoState.expiry && currentParsedSpanSymbol && normalizeCompact(expiryQuery) === normalizeCompact(currentParsedSpanSymbol.expiryLabel);
-          const normalizedExpiryQuery = normalizeCompact(expiryQuery);
+          const strikeQuery = elements.spanStrikeFilter.value.trim();
+          const priceQuery = elements.spanPriceFilter.value.trim();
+          const priceScanQuery = elements.spanPriceScanFilter.value.trim();
+          const deltaQuery = elements.spanDeltaFilter.value.trim();
 
           currentSpanFilteredRows = currentSpanRows.filter((row) => {
-            const symbol = String(row.Symbol || "");
-            const expiry = String(row.Expiry || "");
-            if (!rowMatchesSymbolQuery(symbol, symbolQuery, currentParsedSpanSymbol)) {
+            if (!rowMatchesTextFilter(row.Symbol, symbolQuery)) {
               return false;
             }
             if (!rowMatchesTypeFilter(row.Type, typeFilter)) {
               return false;
             }
-            if (expiryQuery) {
-              const expiryMatches = useParsedExpiry
-                ? rowMatchesParsedExpiry(expiry, currentParsedSpanSymbol)
-                : normalizeCompact(expiry).includes(normalizedExpiryQuery);
-              if (!expiryMatches) {
-                return false;
-              }
-            }
-            if (!rowMatchesNumberRange(row.Strike, strikeMin, strikeMax)) {
+            if (!rowMatchesTextFilter(row.Expiry, expiryQuery, true)) {
               return false;
             }
-            if (!rowMatchesNumberRange(row.Price, priceMin, priceMax)) {
+            if (!rowMatchesTextFilter(row.Strike, strikeQuery)) {
               return false;
             }
-            if (!rowMatchesNumberRange(row.Price_Scan_Range, priceScanMin, priceScanMax)) {
+            if (!rowMatchesTextFilter(row.Price, priceQuery)) {
               return false;
             }
-            if (!rowMatchesNumberRange(row.Delta, deltaMin, deltaMax)) {
+            if (!rowMatchesTextFilter(row.Price_Scan_Range, priceScanQuery)) {
+              return false;
+            }
+            if (!rowMatchesTextFilter(row.Delta, deltaQuery)) {
               return false;
             }
             return true;
           });
 
-          renderSpanPreviewRows(
-            currentSpanFilteredRows,
-            currentParsedSpanSymbol && currentParsedSpanSymbol.underlying ? currentParsedSpanSymbol.underlying : symbolQuery,
-            currentSpanRows.length
-          );
+          renderSpanPreviewRows(currentSpanFilteredRows, symbolQuery, currentSpanRows.length);
           elements.downloadSpanCsvButton.disabled = currentSpanFilteredRows.length === 0;
         }
 
@@ -2014,14 +1969,10 @@
           elements.spanSymbolFilter.value = "";
           elements.spanTypeFilter.value = "";
           elements.spanExpiryFilter.value = "";
-          elements.spanStrikeMinFilter.value = "";
-          elements.spanStrikeMaxFilter.value = "";
-          elements.spanPriceMinFilter.value = "";
-          elements.spanPriceMaxFilter.value = "";
-          elements.spanPriceScanMinFilter.value = "";
-          elements.spanPriceScanMaxFilter.value = "";
-          elements.spanDeltaMinFilter.value = "";
-          elements.spanDeltaMaxFilter.value = "";
+          elements.spanStrikeFilter.value = "";
+          elements.spanPriceFilter.value = "";
+          elements.spanPriceScanFilter.value = "";
+          elements.spanDeltaFilter.value = "";
           clearSpanAutoFields();
           renderSpanParsedTags(null);
         }
@@ -3330,18 +3281,14 @@
         }
 
         function handleSpanSymbolFilterInput() {
-          const parsed = parseSmartSpanSymbol(elements.spanSymbolFilter.value);
-          if (parsed) {
-            applyParsedSpanAutoFill(parsed);
-          } else {
-            clearSpanAutoFields();
-            renderSpanParsedTags(null);
-          }
+          clearSpanAutoFields();
+          renderSpanParsedTags(null);
           applySpanFilters();
         }
 
-        function handleManualSpanFilterChange(field) {
-          setSpanAutoBadge(field, false);
+        function handleManualSpanFilterChange() {
+          clearSpanAutoFields();
+          renderSpanParsedTags(null);
           applySpanFilters();
         }
 
@@ -3389,20 +3336,16 @@
         elements.clearSpanButton.addEventListener("click", () => resetSpanExtract());
         elements.spanFileInput.addEventListener("change", handleSpanFileSelection);
         elements.spanSymbolFilter.addEventListener("input", handleSpanSymbolFilterInput);
-        elements.spanTypeFilter.addEventListener("change", () => handleManualSpanFilterChange("type"));
-        elements.spanExpiryFilter.addEventListener("input", () => handleManualSpanFilterChange("expiry"));
-        elements.spanStrikeMinFilter.addEventListener("input", () => handleManualSpanFilterChange("strike"));
-        elements.spanStrikeMaxFilter.addEventListener("input", () => handleManualSpanFilterChange("strike"));
+        elements.spanTypeFilter.addEventListener("change", handleManualSpanFilterChange);
+        elements.spanExpiryFilter.addEventListener("input", handleManualSpanFilterChange);
+        elements.spanStrikeFilter.addEventListener("input", applySpanFilters);
         elements.spanFiltersClearButton.addEventListener("click", () => {
           resetSpanFilters();
           applySpanFilters();
         });
-        elements.spanPriceMinFilter.addEventListener("input", applySpanFilters);
-        elements.spanPriceMaxFilter.addEventListener("input", applySpanFilters);
-        elements.spanPriceScanMinFilter.addEventListener("input", applySpanFilters);
-        elements.spanPriceScanMaxFilter.addEventListener("input", applySpanFilters);
-        elements.spanDeltaMinFilter.addEventListener("input", applySpanFilters);
-        elements.spanDeltaMaxFilter.addEventListener("input", applySpanFilters);
+        elements.spanPriceFilter.addEventListener("input", applySpanFilters);
+        elements.spanPriceScanFilter.addEventListener("input", applySpanFilters);
+        elements.spanDeltaFilter.addEventListener("input", applySpanFilters);
         elements.darkModeToggle.addEventListener("click", () => applyTheme(!document.body.classList.contains("theme-dark")));
         elements.shortcutsToggle.addEventListener("click", openShortcuts);
         elements.closeShortcutsButton.addEventListener("click", closeShortcuts);
