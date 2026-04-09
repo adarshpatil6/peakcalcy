@@ -1031,7 +1031,6 @@
       <main class="workspace">
         <section class="left-column">
           <h2 class="panel-title">RMS Calculator</h2>
-          <p class="panel-copy">Paste the raw Funds tab summary exactly as copied from your broker screen.</p>
 
           <label class="field-label" for="fundsInput">Funds Tab Summary</label>
           <textarea
@@ -1039,7 +1038,6 @@
             class="funds-input"
             placeholder="Opening balance: 500000.00&#10;Total collateral: 300000.00&#10;Payin: 0.00&#10;Payout: 0.00&#10;SPAN: 225000.00&#10;Exposure: 85000.00&#10;Options premium: 12000.00&#10;Delivery margin: 5000.00"
           ></textarea>
-          <p class="helper-text">Shortcut: Press <strong>Ctrl + Enter</strong> inside the textarea to calculate.</p>
           <div class="quick-actions funds-actions" aria-label="Funds quick actions">
             <button id="cleanupPasteButton" class="quick-chip" type="button">Cleanup Paste</button>
             <button id="copySummaryButton" class="quick-chip" type="button" disabled>Copy Summary</button>
@@ -1071,7 +1069,6 @@
                 <div>
                   <span class="section-kicker">Output</span>
                   <h2 class="panel-title">Margin Snapshot</h2>
-                  <p class="panel-copy">Status, requirement view, delivery treatment, and usage percentage.</p>
                 </div>
                 <div class="section-actions">
                   <div class="quick-actions" aria-label="Funds actions">
@@ -1112,7 +1109,6 @@
                 <div class="proof-toolbar">
                   <div>
                     <div class="metric-label">Math Proof</div>
-                    <div class="proof-copy">Compact breakdown of available funds, requirement, and result.</div>
                   </div>
                   <div class="proof-actions">
                     <button id="toggleProofButton" class="btn btn-secondary" type="button" aria-controls="proofContent" aria-expanded="true">Hide Proof</button>
@@ -1143,7 +1139,6 @@
               <div class="section-header">
                 <div>
                   <h2 class="panel-title">Scratchpad</h2>
-                  <p class="panel-copy">Type a formula, press Enter, and keep a running total for quick desk math.</p>
                 </div>
               </div>
 
@@ -1180,10 +1175,6 @@
                 <option value="75 * 0.85"></option>
                 <option value="(50000 / 17) * 25"></option>
               </datalist>
-              <div class="toolbar-note">
-                Formula ideas: lot size * price, lots * lot size * price, (sell - buy) * qty.
-                Press <strong>Enter</strong> to add, click any result to reuse it, and use <strong>&#9998;</strong> for short notes.
-              </div>
 
               <div class="table-shell">
                 <table class="scratchpad-table">
@@ -1218,7 +1209,6 @@
             <div>
               <span class="section-kicker">Span</span>
               <h2 class="panel-title">SPAN Extract</h2>
-              <p class="panel-copy">Upload a raw <strong>.spn</strong> file or a <strong>.zip</strong> containing one, parse it locally in the browser, preview the extracted rows, and download the CSV.</p>
             </div>
             <div class="section-actions">
               <button id="downloadSpanCsvButton" class="btn btn-secondary" type="button" disabled>Download CSV</button>
@@ -1231,7 +1221,6 @@
               Upload .spn / .zip
               <input id="spanFileInput" type="file" accept=".spn,.zip,application/zip">
             </label>
-            <div class="helper-text">If a ZIP is uploaded, the first <strong>.spn</strong> file inside it is extracted and parsed using the same state-machine logic as your Python script.</div>
           </div>
 
           <div class="span-summary-grid">
